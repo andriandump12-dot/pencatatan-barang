@@ -14,7 +14,7 @@ const CATEGORIES = [
 ];
 
 const $ = id => document.getElementById(id);
-let authMode = 'login', entries = [], limits = [], activities = [], currentRole = 'operator', realtimeChannel = null, currentUser = null;
+let authMode = 'login', entries = [], limits = [], activities = [], currentRole = 'operator', realtimeChannel = null, currentUser = null, notificationsReadAt = localStorage.getItem('stocklog_notifications_read_at') || '';
 
 function today(){ return new Date().toISOString().slice(0,10); }
 function num(id){ const v=parseFloat($(id).value); return Number.isFinite(v)?v:0; }
@@ -117,7 +117,31 @@ function renderAlerts(){
   $('alertPanel').classList.toggle('hidden',alerts.length===0);
   $('alertList').innerHTML=alerts.map(a=>`<div class="alert-item"><div><strong>🔴 ${esc(a.kategori)} • ${esc(a.nama_item)}</strong><span>Minimum ${fmt(a.minimum)} ${esc(a.satuan||'')} • terakhir ${esc(a.entry?.tanggal||'belum ada data')}</span></div><div class="alert-value">${fmt(a.saldo)} ${esc(a.satuan||'')}</div></div>`).join('');
   renderPredictions();
+  renderNotifications();
 }
+function notificationItems(){
+  if(currentRole!=='admin') return [];
+  const items=[];
+  const latest=latestByItem();
+  limits.forEach(l=>{
+    const e=latest.get(`${l.kategori}|||${l.nama_item}`); const saldo=e?Number(e.saldo_akhir):0; const min=Number(l.minimum||0);
+    if(saldo<=min) items.push({kind:'critical',title:`Stok kritis • ${l.nama_item}`,meta:`${l.kategori} • stok ${fmt(saldo)} ${l.satuan||''} • minimum ${fmt(min)} ${l.satuan||''}`,time:e?.updated_at||e?.created_at||null,actor:e?.updated_by_email||e?.created_by_email||''});
+  });
+  activities.slice(0,40).forEach(a=>items.push({kind:a.action==='DELETE'?'danger':a.action==='UPDATE'?'update':'activity',title:`${a.action==='INSERT'?'Input baru':a.action==='UPDATE'?'Data diperbarui':'Data dihapus'} • ${a.nama_item}`,meta:`${a.kategori} • ${a.user_email||'Operator'} • saldo akhir ${fmt(a.saldo_akhir)}`,time:a.created_at,actor:a.user_email||''}));
+  return items.sort((a,b)=>new Date(b.time||0)-new Date(a.time||0)).slice(0,60);
+}
+function renderNotifications(){
+  const btn=$('notificationBtn'), panel=$('notificationPanel'); if(!btn||!panel)return;
+  if(currentRole!=='admin'){btn.classList.add('hidden');panel.classList.add('hidden');return;}
+  btn.classList.remove('hidden');
+  const items=notificationItems(); const unread=notificationsReadAt?items.filter(x=>new Date(x.time||0)>new Date(notificationsReadAt)).length:items.length;
+  $('notificationBadge').textContent=unread>99?'99+':unread;
+  $('notificationSummary').textContent=`${items.length} notifikasi`;
+  $('notificationList').innerHTML=items.map(x=>`<div class="notification-item ${x.kind}"><div class="notification-icon">${x.kind==='critical'?'⚠️':x.kind==='danger'?'🗑️':x.kind==='update'?'✏️':'📝'}</div><div class="notification-copy"><strong>${esc(x.title)}</strong><span>${esc(x.meta)}</span><small>${formatDateTime(x.time)}</small></div></div>`).join('');
+  $('notificationEmpty').classList.toggle('hidden',items.length>0);
+  panel.classList.toggle('hidden',items.length===0 && !panel.dataset.open);
+}
+function formatDateTime(v){if(!v)return 'Waktu tidak tersedia'; const d=new Date(v); return isNaN(d)?String(v):d.toLocaleString('id-ID',{dateStyle:'short',timeStyle:'short'});}
 function filteredEntries(){const c=$('categoryFilter').value,d=$('dateFilter').value;return entries.filter(e=>(!c||e.kategori===c)&&(!d||e.tanggal===d));}
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
 function actorLabel(e){return e.created_by_email||e.updated_by_email||'Belum tercatat';}
@@ -133,10 +157,10 @@ function renderEntries(){
   $('emptyState').classList.toggle('hidden',rows.length>0);
 }
 async function loadActivities(){
-  if(currentRole!=='admin')return;
-  const {data,error}=await db.from('stock_activity_logs').select('*').order('created_at',{ascending:false}).limit(100);
-  if(error){console.warn('Activity log:',error.message);return;}
-  activities=data||[];renderActivities();
+  if(currentRole!=='admin'){activities=[];return;}
+  const {data,error}=await db.from('stock_activity_logs').select('*').order('created_at',{ascending:false}).limit(80);
+  if(error){console.error(error);return;}
+  activities=data||[]; renderActivities(); renderNotifications();
 }
 function renderActivities(){
   if(currentRole!=='admin')return;
@@ -278,7 +302,7 @@ function showAuth(){$('appView').classList.add('hidden');$('authView').classList
 
 $('loginTab').addEventListener('click',()=>{authMode='login';$('loginTab').classList.add('active');$('signupTab').classList.remove('active');$('authSubmit').textContent='Login';setMessage($('authMsg'));});
 $('signupTab').addEventListener('click',()=>{authMode='signup';$('signupTab').classList.add('active');$('loginTab').classList.remove('active');$('authSubmit').textContent='Daftar';setMessage($('authMsg'));});
-$('authForm').addEventListener('submit',handleAuth);$('reportYear').addEventListener('change',renderReport);$('reportMonth').addEventListener('change',renderReport);$('reportCategory').addEventListener('change',()=>{updateReportItems();renderReport();});$('reportItem').addEventListener('change',renderReport);$('exportCsvBtn').addEventListener('click',exportReportCsv);$('printReportBtn').addEventListener('click',printReport);$('logoutBtn').addEventListener('click',async()=>{if(realtimeChannel)db.removeChannel(realtimeChannel);await db.auth.signOut();showAuth();});$('newEntryBtn').addEventListener('click',()=>openModal());$('closeModal').addEventListener('click',closeModal);$('cancelBtn').addEventListener('click',closeModal);$('entryForm').addEventListener('submit',saveEntry);$('entryCategory').addEventListener('change',updateModeUI);$('categoryFilter').addEventListener('change',renderEntries);$('dateFilter').addEventListener('change',renderEntries);['opening','incoming','usage','meterOpening','meterClosing'].forEach(id=>$(id).addEventListener('input',updatePreview));$('entryItem').addEventListener('blur',syncOpeningBalance);$('entryDate').addEventListener('change',syncOpeningBalance);$('entryCategory').addEventListener('change',syncOpeningBalance);$('settingsBtn').addEventListener('click',openSettings);$('closeSettings').addEventListener('click',closeSettings);$('cancelSettings').addEventListener('click',closeSettings);$('settingsForm').addEventListener('submit',saveLimit);$('notifyBtn').addEventListener('click',enableNotifications);
+$('authForm').addEventListener('submit',handleAuth);$('notificationBtn').addEventListener('click',()=>{const p=$('notificationPanel');p.classList.toggle('hidden');p.dataset.open=p.classList.contains('hidden')?'':'1';});$('markNotificationsRead').addEventListener('click',()=>{notificationsReadAt=new Date().toISOString();localStorage.setItem('stocklog_notifications_read_at',notificationsReadAt);renderNotifications();});$('reportYear').addEventListener('change',renderReport);$('reportMonth').addEventListener('change',renderReport);$('reportCategory').addEventListener('change',()=>{updateReportItems();renderReport();});$('reportItem').addEventListener('change',renderReport);$('exportCsvBtn').addEventListener('click',exportReportCsv);$('printReportBtn').addEventListener('click',printReport);$('logoutBtn').addEventListener('click',async()=>{if(realtimeChannel)db.removeChannel(realtimeChannel);await db.auth.signOut();showAuth();});$('newEntryBtn').addEventListener('click',()=>openModal());$('closeModal').addEventListener('click',closeModal);$('cancelBtn').addEventListener('click',closeModal);$('entryForm').addEventListener('submit',saveEntry);$('entryCategory').addEventListener('change',updateModeUI);$('categoryFilter').addEventListener('change',renderEntries);$('dateFilter').addEventListener('change',renderEntries);['opening','incoming','usage','meterOpening','meterClosing'].forEach(id=>$(id).addEventListener('input',updatePreview));$('entryItem').addEventListener('blur',syncOpeningBalance);$('entryDate').addEventListener('change',syncOpeningBalance);$('entryCategory').addEventListener('change',syncOpeningBalance);$('settingsBtn').addEventListener('click',openSettings);$('closeSettings').addEventListener('click',closeSettings);$('cancelSettings').addEventListener('click',closeSettings);$('settingsForm').addEventListener('submit',saveLimit);$('notifyBtn').addEventListener('click',enableNotifications);
 fillCategorySelects();renderCategoryCards();$('entryDate').value=today();
 
 db.auth.getSession().then(({data})=>{if(data.session)showApp(data.session);});

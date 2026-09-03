@@ -32,7 +32,7 @@
     <header class="topbar">
       <div class="topbar-inner">
         <div class="brand-lockup"><div class="brand-mark small">S</div><div><div class="brand light">STOCK<span>LOG</span></div><div class="subbrand">Bahan & utilitas</div></div></div>
-        <div class="top-actions"><button id="notifyBtn" class="settings-btn">🔕 Aktifkan Notifikasi</button><button id="settingsBtn" class="settings-btn hidden">⚙ Admin</button><div class="user-pill"><span class="online-dot"></span><span id="userEmail"></span><b id="roleBadge" class="role-badge">OPERATOR</b></div><button id="logoutBtn" class="logout">Keluar</button></div>
+        <div class="top-actions"><button id="notifyBtn" class="settings-btn">🔕 Aktifkan Notifikasi</button><button id="notificationBtn" class="settings-btn hidden">🔔 <span id="notificationBadge">0</span></button><button id="settingsBtn" class="settings-btn hidden">⚙ Admin</button><div class="user-pill"><span class="online-dot"></span><span id="userEmail"></span><b id="roleBadge" class="role-badge">OPERATOR</b></div><button id="logoutBtn" class="logout">Keluar</button></div>
       </div>
     </header>
 
@@ -40,6 +40,12 @@
       <section class="hero">
         <div><span class="eyebrow">DASHBOARD</span><h1>Halo, siap catat hari ini?</h1><p>Monitor saldo, pemakaian, dan histori pencatatan dengan cepat.</p></div>
         <button id="newEntryBtn" class="primary add-btn"><span class="plus">+</span> Input Pencatatan</button>
+      </section>
+
+      <section class="panel notification-panel hidden" id="notificationPanel">
+        <div class="panel-head"><div><span class="eyebrow">ADMIN NOTIFICATIONS V8</span><h2>Pusat Notifikasi</h2><p class="muted">Alert stok, aktivitas operator, dan kondisi item terbaru.</p></div><div class="notification-actions"><button id="markNotificationsRead" class="ghost small">Tandai dibaca</button><span class="badge" id="notificationSummary">0 notifikasi</span></div></div>
+        <div id="notificationList" class="notification-list"></div>
+        <div id="notificationEmpty" class="empty hidden"><div class="empty-icon">🔔</div><strong>Belum ada notifikasi</strong><span>Notifikasi stok dan aktivitas akan muncul di sini.</span></div>
       </section>
 
       <section class="alert-panel hidden" id="alertPanel">
