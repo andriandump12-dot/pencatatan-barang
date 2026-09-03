@@ -62,7 +62,7 @@ async function loadLimits(){
 async function loadEntries(){
   const {data,error}=await db.from('stock_entries').select('*').order('tanggal',{ascending:false}).order('created_at',{ascending:false});
   if(error){setMessage($('authMsg'),`Gagal mengambil data: ${error.message}`,'error');return;}
-  entries=data||[];renderEntries();updateStats();renderAlerts();
+  entries=data||[];renderEntries();updateStats();renderAlerts();renderDashboard();renderDashboard();
 }
 function latestByItem(){
   const map=new Map();
@@ -107,6 +107,28 @@ function renderActivities(){
     return `<tr><td>${waktu}</td><td><span class="badge ${cls}">${action}</span></td><td><span class="actor">${esc(a.user_email||'Tidak diketahui')}</span></td><td>${esc(a.kategori)}</td><td><strong>${esc(a.nama_item)}</strong></td><td>${esc(a.tanggal)}</td><td>${fmt(a.saldo_akhir)}</td></tr>`;
   }).join('');
   $('activityEmpty').classList.toggle('hidden',activities.length>0);
+}
+
+function monthKey(d){return String(d||'').slice(0,7);}
+function renderDashboard(){
+  const latest=latestByItem();
+  const cards=[...latest.values()].sort((a,b)=>`${a.kategori}${a.nama_item}`.localeCompare(`${b.kategori}${b.nama_item}`));
+  const byCat=CATEGORIES.map(c=>({cat:c,items:cards.filter(e=>e.kategori===c.name)}));
+  const stockCards=cards.map(e=>{
+    const l=limits.find(x=>x.kategori===e.kategori&&x.nama_item===e.nama_item);
+    const saldo=Number(e.saldo_akhir||0), min=l?Number(l.minimum):null;
+    const status=min===null?'normal':saldo<=min?'critical':saldo<=min*1.5?'low':'normal';
+    return `<div class="stock-card ${status}"><div class="stock-card-top"><span class="stock-cat">${esc(e.kategori)}</span><span class="status-dot"></span></div><strong>${esc(e.nama_item)}</strong><div class="stock-value">${fmt(saldo)} <small>${esc(l?.satuan||'')}</small></div><div class="stock-meta">Terakhir ${esc(e.tanggal)}${min!==null?` • min ${fmt(min)}`:''}</div></div>`;
+  }).join('');
+  $('stockGrid').innerHTML=stockCards||'<div class="dashboard-empty">Belum ada data stok. Input pencatatan pertama untuk melihat ringkasan.</div>';
+  const mk=monthKey(today()), monthly=entries.filter(e=>monthKey(e.tanggal)===mk), total=monthly.reduce((sum,e)=>sum+Number(e.pemakaian||0),0);
+  $('monthLabel').textContent=new Date(today()+'T00:00:00').toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+  $('monthUsage').textContent=fmt(total);
+  const totals=CATEGORIES.map(c=>({name:c.name,total:monthly.filter(e=>e.kategori===c.name).reduce((s,e)=>s+Number(e.pemakaian||0),0)})).filter(x=>x.total>0).sort((a,b)=>b.total-a.total);
+  const max=Math.max(1,...totals.map(x=>x.total));
+  $('usageBars').innerHTML=totals.length?totals.map(x=>`<div class="usage-row"><div><span>${esc(x.name)}</span><b>${fmt(x.total)}</b></div><div class="bar"><i style="width:${Math.max(4,(x.total/max)*100)}%"></i></div></div>`).join(''):'<div class="muted">Belum ada pemakaian bulan ini.</div>';
+  $('categoryStatus').innerHTML=byCat.map(x=>{const has=x.items.length;const bad=x.items.some(e=>{const l=limits.find(l=>l.kategori===e.kategori&&l.nama_item===e.nama_item);return l&&Number(e.saldo_akhir)<=Number(l.minimum)});return `<div class="status-row"><span class="status-icon ${bad?'bad':has?'good':'empty-status'}">${bad?'!':has?'✓':'–'}</span><div><strong>${esc(x.cat.name)}</strong><small>${has?`${x.items.length} item aktif`:'Belum ada data'}</small></div><span class="status-text ${bad?'bad-text':has?'good-text':''}">${bad?'Kritis':has?'Aman':'Kosong'}</span></div>`;}).join('');
+  $('dashboardUpdated').textContent='Realtime • '+new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
 }
 
 function updateStats(){const t=today();$('todayCount').textContent=entries.filter(e=>e.tanggal===t).length;$('categoryCount').textContent=new Set(entries.map(e=>e.kategori)).size;$('entryCount').textContent=entries.length;}

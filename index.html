@@ -53,6 +53,15 @@
         <div class="stat"><div class="stat-icon green">✓</div><div><span>Total pencatatan</span><strong id="entryCount">0</strong><small>tersimpan online</small></div></div>
       </section>
 
+      <section class="dashboard-section" id="dashboardSection">
+        <div class="section-title"><div><span class="eyebrow">STOCK OVERVIEW</span><h2>Ringkasan stok</h2></div><span class="badge" id="dashboardUpdated">Realtime</span></div>
+        <div class="stock-grid" id="stockGrid"></div>
+        <div class="dashboard-cols">
+          <div class="panel mini-panel"><div class="panel-head"><div><span class="eyebrow">MONTHLY</span><h2>Pemakaian bulan ini</h2><p class="muted" id="monthLabel"></p></div></div><div class="usage-summary"><strong id="monthUsage">0</strong><span>Total pemakaian</span></div><div id="usageBars" class="usage-bars"></div></div>
+          <div class="panel mini-panel"><div class="panel-head"><div><span class="eyebrow">STATUS</span><h2>Kondisi kategori</h2><p class="muted">Berdasarkan pencatatan terbaru.</p></div></div><div id="categoryStatus" class="category-status"></div></div>
+        </div>
+      </section>
+
       <section class="category-section">
         <div class="section-title"><div><span class="eyebrow">QUICK ACCESS</span><h2>Kategori pencatatan</h2></div></div>
         <div class="category-grid" id="categoryCards"></div>
