@@ -1,396 +1,122 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pencatatan Barang</title>
-
-<style>
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-}
-
-body {
-    background: #f4f6f8;
-    color: #1f2937;
-}
-
-.header {
-    background: #111827;
-    color: white;
-    padding: 20px;
-}
-
-.header h1 {
-    font-size: 22px;
-}
-
-.header p {
-    margin-top: 5px;
-    color: #9ca3af;
-}
-
-.container {
-    max-width: 900px;
-    margin: auto;
-    padding: 20px;
-}
-
-.dashboard {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.card {
-    background: white;
-    padding: 18px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-
-.card small {
-    color: #6b7280;
-}
-
-.card h2 {
-    margin-top: 8px;
-}
-
-.form {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-}
-
-.form h2 {
-    margin-bottom: 15px;
-}
-
-input, select {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 10px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 15px;
-}
-
-button {
-    border: none;
-    padding: 11px 15px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.btn-primary {
-    background: #2563eb;
-    color: white;
-    width: 100%;
-}
-
-.btn-danger {
-    background: #ef4444;
-    color: white;
-    padding: 7px 10px;
-}
-
-.search {
-    margin-bottom: 15px;
-}
-
-.table-container {
-    background: white;
-    border-radius: 12px;
-    overflow-x: auto;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th, td {
-    padding: 13px;
-    text-align: left;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-th {
-    background: #f9fafb;
-}
-
-.empty {
-    text-align: center;
-    padding: 30px;
-    color: #6b7280;
-}
-
-@media (max-width: 600px) {
-    .dashboard {
-        grid-template-columns: 1fr;
-    }
-
-    .container {
-        padding: 15px;
-    }
-
-    th, td {
-        font-size: 13px;
-    }
-}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StockLog — Pencatatan Stok</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-
 <body>
-
-<div class="header">
-    <h1>📦 Pencatatan Barang</h1>
-    <p>Dashboard stok barang sederhana</p>
-</div>
-
-<div class="container">
-
-    <div class="dashboard">
-
-        <div class="card">
-            <small>Total Jenis Barang</small>
-            <h2 id="totalJenis">0</h2>
-        </div>
-
-        <div class="card">
-            <small>Total Stok</small>
-            <h2 id="totalStok">0</h2>
-        </div>
-
-        <div class="card">
-            <small>Stok Menipis</small>
-            <h2 id="stokMenipis">0</h2>
-        </div>
-
+  <div id="authView" class="auth-shell">
+    <div class="auth-card">
+      <div class="brand">STOCK<span>LOG</span></div>
+      <h1>Pencatatan Stok</h1>
+      <p class="muted">Login untuk menyimpan dan mengelola data stok.</p>
+      <div class="tabs">
+        <button id="loginTab" class="tab active">Login</button>
+        <button id="signupTab" class="tab">Daftar</button>
+      </div>
+      <form id="authForm">
+        <label>Email<input id="email" type="email" required placeholder="nama@email.com"></label>
+        <label>Password<input id="password" type="password" minlength="6" required placeholder="Minimal 6 karakter"></label>
+        <button class="primary" id="authSubmit" type="submit">Login</button>
+      </form>
+      <div id="authMsg" class="message"></div>
+      <p class="tiny">Catatan: login online menggunakan Supabase dan data dipisahkan per akun.</p>
     </div>
+  </div>
 
-    <div class="form">
+  <div id="appView" class="hidden">
+    <header class="topbar">
+      <div>
+        <div class="brand">STOCK<span>LOG</span></div>
+        <div class="subbrand">Pencatatan bahan & utilitas</div>
+      </div>
+      <div class="top-actions">
+        <span id="userEmail" class="user-email"></span>
+        <button id="logoutBtn" class="ghost">Keluar</button>
+      </div>
+    </header>
 
-        <h2>➕ Tambah Barang</h2>
+    <main class="container">
+      <section class="hero">
+        <div>
+          <h1>Dashboard Stok</h1>
+          <p>Input harian, saldo otomatis, dan histori tersimpan online.</p>
+        </div>
+        <button id="newEntryBtn" class="primary">+ Input Pencatatan</button>
+      </section>
 
-        <input
-            type="text"
-            id="nama"
-            placeholder="Nama barang">
+      <section class="cards">
+        <div class="stat"><span>Hari ini</span><strong id="todayCount">0</strong><small>pencatatan</small></div>
+        <div class="stat"><span>Total kategori</span><strong id="categoryCount">0</strong><small>aktif</small></div>
+        <div class="stat"><span>Transaksi tersimpan</span><strong id="entryCount">0</strong><small>online</small></div>
+      </section>
 
-        <input
-            type="text"
-            id="kode"
-            placeholder="Kode barang">
+      <section class="panel">
+        <div class="panel-head">
+          <div><h2>Pencatatan</h2><p class="muted">Pilih kategori dan periode untuk melihat data.</p></div>
+          <div class="filters">
+            <select id="categoryFilter"></select>
+            <input id="dateFilter" type="date">
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Tanggal</th><th>Kategori</th><th>Item</th>
+              <th>Saldo Awal</th><th>Pemasukan</th><th>Pemakaian</th><th>Saldo Akhir</th><th>Aksi</th>
+            </tr></thead>
+            <tbody id="entriesBody"></tbody>
+          </table>
+        </div>
+        <div id="emptyState" class="empty hidden">Belum ada pencatatan.</div>
+      </section>
+    </main>
+  </div>
 
-        <input
-            type="number"
-            id="stok"
-            placeholder="Jumlah stok">
+  <div id="entryModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div><h2 id="modalTitle">Input Pencatatan</h2><p id="modeHelp" class="muted"></p></div>
+        <button id="closeModal" class="icon-btn">×</button>
+      </div>
+      <form id="entryForm">
+        <input id="entryId" type="hidden">
+        <div class="grid2">
+          <label>Tanggal<input id="entryDate" type="date" required></label>
+          <label>Kategori<select id="entryCategory" required></select></label>
+        </div>
+        <label>Nama item<input id="entryItem" type="text" required placeholder="Contoh: Garam, PAC, CNG"></label>
 
-        <button
-            class="btn-primary"
-            onclick="tambahBarang()">
-            Tambahkan Barang
-        </button>
-
-    </div>
-
-    <input
-        class="search"
-        type="text"
-        id="search"
-        placeholder="🔎 Cari barang..."
-        oninput="tampilkanBarang()">
-
-    <div class="table-container">
-
-        <table>
-
-            <thead>
-                <tr>
-                    <th>Kode</th>
-                    <th>Barang</th>
-                    <th>Stok</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-
-            <tbody id="daftarBarang"></tbody>
-
-        </table>
-
-        <div
-            id="kosong"
-            class="empty">
-            Belum ada barang.
+        <div id="flowFields">
+          <div class="grid3">
+            <label>Saldo Awal<input id="opening" type="number" step="any" min="0" value="0"></label>
+            <label>Pemasukan<input id="incoming" type="number" step="any" min="0" value="0"></label>
+            <label>Pemakaian<input id="usage" type="number" step="any" min="0" value="0"></label>
+          </div>
+          <div class="calculated"><span>Saldo Akhir otomatis</span><strong id="closingPreview">0</strong></div>
         </div>
 
+        <div id="meterFields" class="hidden">
+          <div class="grid2">
+            <label>Saldo Awal<input id="meterOpening" type="number" step="any" min="0" value="0"></label>
+            <label>Saldo Akhir<input id="meterClosing" type="number" step="any" min="0" value="0"></label>
+          </div>
+          <div class="calculated"><span>Pemakaian otomatis = Saldo Akhir − Saldo Awal</span><strong id="meterUsagePreview">0</strong></div>
+        </div>
+
+        <label>Catatan<textarea id="notes" rows="3" placeholder="Opsional"></textarea></label>
+        <div id="formMsg" class="message"></div>
+        <div class="modal-actions">
+          <button type="button" id="cancelBtn" class="ghost">Batal</button>
+          <button type="submit" class="primary">Simpan</button>
+        </div>
+      </form>
     </div>
+  </div>
 
-</div>
-
-<script>
-
-let barang = JSON.parse(
-    localStorage.getItem("barang")
-) || [];
-
-function simpanData() {
-
-    localStorage.setItem(
-        "barang",
-        JSON.stringify(barang)
-    );
-
-}
-
-function tambahBarang() {
-
-    const nama =
-        document.getElementById("nama").value.trim();
-
-    const kode =
-        document.getElementById("kode").value.trim();
-
-    const stok =
-        Number(document.getElementById("stok").value);
-
-    if (!nama || !kode || stok < 0) {
-
-        alert("Lengkapi data barang terlebih dahulu.");
-
-        return;
-    }
-
-    barang.push({
-        nama: nama,
-        kode: kode,
-        stok: stok
-    });
-
-    simpanData();
-
-    document.getElementById("nama").value = "";
-    document.getElementById("kode").value = "";
-    document.getElementById("stok").value = "";
-
-    tampilkanBarang();
-
-}
-
-function hapusBarang(index) {
-
-    if (
-        confirm("Yakin ingin menghapus barang ini?")
-    ) {
-
-        barang.splice(index, 1);
-
-        simpanData();
-
-        tampilkanBarang();
-
-    }
-
-}
-
-function tampilkanBarang() {
-
-    const tbody =
-        document.getElementById("daftarBarang");
-
-    const kosong =
-        document.getElementById("kosong");
-
-    const search =
-        document.getElementById("search")
-        .value
-        .toLowerCase();
-
-    tbody.innerHTML = "";
-
-    let hasil = barang.filter(item =>
-        item.nama.toLowerCase().includes(search) ||
-        item.kode.toLowerCase().includes(search)
-    );
-
-    if (hasil.length === 0) {
-
-        kosong.style.display = "block";
-
-    } else {
-
-        kosong.style.display = "none";
-
-        hasil.forEach((item) => {
-
-            const index =
-                barang.indexOf(item);
-
-            const row =
-                document.createElement("tr");
-
-            row.innerHTML = `
-                <td>${item.kode}</td>
-
-                <td>${item.nama}</td>
-
-                <td>${item.stok}</td>
-
-                <td>
-                    <button
-                        class="btn-danger"
-                        onclick="hapusBarang(${index})">
-                        Hapus
-                    </button>
-                </td>
-            `;
-
-            tbody.appendChild(row);
-
-        });
-
-    }
-
-    updateDashboard();
-
-}
-
-function updateDashboard() {
-
-    document.getElementById("totalJenis")
-        .textContent = barang.length;
-
-    const total =
-        barang.reduce(
-            (sum, item) => sum + Number(item.stok),
-            0
-        );
-
-    document.getElementById("totalStok")
-        .textContent = total;
-
-    const menipis =
-        barang.filter(item =>
-            Number(item.stok) <= 5
-        ).length;
-
-    document.getElementById("stokMenipis")
-        .textContent = menipis;
-
-}
-
-tampilkanBarang();
-
-</script>
-
+  <script src="app.js"></script>
 </body>
 </html>
