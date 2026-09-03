@@ -14,7 +14,7 @@ const CATEGORIES = [
 ];
 
 const $ = id => document.getElementById(id);
-let authMode = 'login', entries = [], limits = [], currentRole = 'operator', realtimeChannel = null, currentUser = null;
+let authMode = 'login', entries = [], limits = [], activities = [], currentRole = 'operator', realtimeChannel = null, currentUser = null;
 
 function today(){ return new Date().toISOString().slice(0,10); }
 function num(id){ const v=parseFloat($(id).value); return Number.isFinite(v)?v:0; }
@@ -90,6 +90,25 @@ function renderEntries(){
   }
   $('emptyState').classList.toggle('hidden',rows.length>0);
 }
+async function loadActivities(){
+  if(currentRole!=='admin')return;
+  const {data,error}=await db.from('stock_activity_logs').select('*').order('created_at',{ascending:false}).limit(100);
+  if(error){console.warn('Activity log:',error.message);return;}
+  activities=data||[];renderActivities();
+}
+function renderActivities(){
+  if(currentRole!=='admin')return;
+  $('activityPanel').classList.remove('hidden');
+  $('activityCount').textContent=`${activities.length} aktivitas`;
+  $('activityBody').innerHTML=activities.map(a=>{
+    const action=a.action==='INSERT'?'INPUT':a.action==='UPDATE'?'UBAH':'HAPUS';
+    const cls=a.action==='INSERT'?'success':a.action==='DELETE'?'danger':'';
+    const waktu=new Date(a.created_at).toLocaleString('id-ID',{dateStyle:'short',timeStyle:'short'});
+    return `<tr><td>${waktu}</td><td><span class="badge ${cls}">${action}</span></td><td><span class="actor">${esc(a.user_email||'Tidak diketahui')}</span></td><td>${esc(a.kategori)}</td><td><strong>${esc(a.nama_item)}</strong></td><td>${esc(a.tanggal)}</td><td>${fmt(a.saldo_akhir)}</td></tr>`;
+  }).join('');
+  $('activityEmpty').classList.toggle('hidden',activities.length>0);
+}
+
 function updateStats(){const t=today();$('todayCount').textContent=entries.filter(e=>e.tanggal===t).length;$('categoryCount').textContent=new Set(entries.map(e=>e.kategori)).size;$('entryCount').textContent=entries.length;}
 
 function openModal(entry=null){
@@ -124,10 +143,10 @@ async function loadProfile(user){
   if(!data){const r=await db.from('profiles').insert({id:user.id,role:'operator'}).select('role').single();data=r.data;}
   currentRole=data?.role==='admin'?'admin':'operator';$('settingsBtn').classList.toggle('hidden',currentRole!=='admin');$('roleBadge').textContent=currentRole.toUpperCase();
 }
-function subscribeRealtime(){if(realtimeChannel)db.removeChannel(realtimeChannel);realtimeChannel=db.channel('stocklog-live').on('postgres_changes',{event:'*',schema:'public',table:'stock_entries'},async payload=>{await loadEntries();if(payload.eventType==='INSERT'||payload.eventType==='UPDATE')await notifyIfLow(payload.new.kategori,payload.new.nama_item,payload.new.saldo_akhir);}).on('postgres_changes',{event:'*',schema:'public',table:'stock_limits'},loadLimits).subscribe();}
+function subscribeRealtime(){if(realtimeChannel)db.removeChannel(realtimeChannel);realtimeChannel=db.channel('stocklog-live').on('postgres_changes',{event:'*',schema:'public',table:'stock_entries'},async payload=>{await loadEntries();if(payload.eventType==='INSERT'||payload.eventType==='UPDATE')await notifyIfLow(payload.new.kategori,payload.new.nama_item,payload.new.saldo_akhir);}).on('postgres_changes',{event:'*',schema:'public',table:'stock_limits'},loadLimits).on('postgres_changes',{event:'*',schema:'public',table:'stock_activity_logs'},loadActivities).subscribe();}
 
 async function handleAuth(event){event.preventDefault();const email=$('email').value.trim(),password=$('password').value;setMessage($('authMsg'),authMode==='login'?'Memproses login...':'Membuat akun...');const result=authMode==='login'?await db.auth.signInWithPassword({email,password}):await db.auth.signUp({email,password});if(result.error){setMessage($('authMsg'),result.error.message,'error');return;}if(authMode==='signup'&&!result.data.session){setMessage($('authMsg'),'Akun berhasil dibuat. Silakan login.','success');authMode='login';$('authSubmit').textContent='Login';return;}showApp(result.data.session);}
-async function showApp(session){if(!session)return;currentUser=session.user;$('authView').classList.add('hidden');$('appView').classList.remove('hidden');$('userEmail').textContent=session.user.email||'';await loadProfile(session.user);await loadLimits();await loadEntries();subscribeRealtime();}
+async function showApp(session){if(!session)return;currentUser=session.user;$('authView').classList.add('hidden');$('appView').classList.remove('hidden');$('userEmail').textContent=session.user.email||'';await loadProfile(session.user);await loadLimits();await loadEntries();if(currentRole==='admin')await loadActivities();subscribeRealtime();}
 function showAuth(){$('appView').classList.add('hidden');$('authView').classList.remove('hidden');}
 
 $('loginTab').addEventListener('click',()=>{authMode='login';$('loginTab').classList.add('active');$('signupTab').classList.remove('active');$('authSubmit').textContent='Login';setMessage($('authMsg'));});

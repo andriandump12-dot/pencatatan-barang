@@ -58,6 +58,15 @@
         <div class="category-grid" id="categoryCards"></div>
       </section>
 
+      <section class="panel history-panel hidden" id="activityPanel">
+        <div class="panel-head">
+          <div><span class="eyebrow">ADMIN ACTIVITY</span><h2>Aktivitas Operator</h2><p class="muted">Riwayat input, perubahan, dan penghapusan data secara realtime.</p></div>
+          <span class="badge" id="activityCount">0 aktivitas</span>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Waktu</th><th>Aksi</th><th>Operator</th><th>Kategori</th><th>Item</th><th>Tanggal</th><th>Saldo Akhir</th></tr></thead><tbody id="activityBody"></tbody></table></div>
+        <div id="activityEmpty" class="empty hidden"><div class="empty-icon">◷</div><strong>Belum ada aktivitas</strong><span>Aktivitas operator akan muncul di sini.</span></div>
+      </section>
+
       <section class="panel history-panel">
         <div class="panel-head">
           <div><span class="eyebrow">HISTORY</span><h2>Riwayat pencatatan</h2><p class="muted">Pilih kategori atau tanggal untuk menyaring data.</p></div>
