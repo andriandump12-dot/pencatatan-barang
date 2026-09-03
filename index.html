@@ -2,121 +2,108 @@
 <html lang="id">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>StockLog — Pencatatan Stok</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1220">
+  <title>StockLog — Pencatatan Bahan & Utilitas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div id="authView" class="auth-shell">
+    <div class="auth-glow glow-a"></div><div class="auth-glow glow-b"></div>
     <div class="auth-card">
-      <div class="brand">STOCK<span>LOG</span></div>
-      <h1>Pencatatan Stok</h1>
-      <p class="muted">Login untuk menyimpan dan mengelola data stok.</p>
-      <div class="tabs">
-        <button id="loginTab" class="tab active">Login</button>
-        <button id="signupTab" class="tab">Daftar</button>
-      </div>
+      <div class="brand-lockup"><div class="brand-mark">S</div><div><div class="brand">STOCK<span>LOG</span></div><div class="brand-caption">CONTROL • RECORD • TRACK</div></div></div>
+      <div class="auth-copy"><span class="eyebrow">WORKPLACE STOCK SYSTEM</span><h1>Pencatatan jadi lebih <span>rapi.</span></h1><p>Kelola stok bahan dan utilitas dalam satu dashboard online.</p></div>
+      <div class="tabs"><button id="loginTab" class="tab active">Masuk</button><button id="signupTab" class="tab">Daftar</button></div>
       <form id="authForm">
         <label>Email<input id="email" type="email" required placeholder="nama@email.com"></label>
         <label>Password<input id="password" type="password" minlength="6" required placeholder="Minimal 6 karakter"></label>
-        <button class="primary" id="authSubmit" type="submit">Login</button>
+        <button class="primary wide" id="authSubmit" type="submit"><span>Masuk ke Dashboard</span><b>→</b></button>
       </form>
       <div id="authMsg" class="message"></div>
-      <p class="tiny">Catatan: login online menggunakan Supabase dan data dipisahkan per akun.</p>
+      <p class="tiny">Data tersimpan online dan dipisahkan berdasarkan akun.</p>
     </div>
   </div>
 
-  <div id="appView" class="hidden">
+  <div id="appView" class="hidden app-shell">
     <header class="topbar">
-      <div>
-        <div class="brand">STOCK<span>LOG</span></div>
-        <div class="subbrand">Pencatatan bahan & utilitas</div>
-      </div>
-      <div class="top-actions">
-        <span id="userEmail" class="user-email"></span>
-        <button id="logoutBtn" class="ghost">Keluar</button>
+      <div class="topbar-inner">
+        <div class="brand-lockup"><div class="brand-mark small">S</div><div><div class="brand light">STOCK<span>LOG</span></div><div class="subbrand">Bahan & utilitas</div></div></div>
+        <div class="top-actions"><button id="notifyBtn" class="settings-btn">🔕 Aktifkan Notifikasi</button><button id="settingsBtn" class="settings-btn hidden">⚙ Admin</button><div class="user-pill"><span class="online-dot"></span><span id="userEmail"></span><b id="roleBadge" class="role-badge">OPERATOR</b></div><button id="logoutBtn" class="logout">Keluar</button></div>
       </div>
     </header>
 
     <main class="container">
       <section class="hero">
-        <div>
-          <h1>Dashboard Stok</h1>
-          <p>Input harian, saldo otomatis, dan histori tersimpan online.</p>
-        </div>
-        <button id="newEntryBtn" class="primary">+ Input Pencatatan</button>
+        <div><span class="eyebrow">DASHBOARD</span><h1>Halo, siap catat hari ini?</h1><p>Monitor saldo, pemakaian, dan histori pencatatan dengan cepat.</p></div>
+        <button id="newEntryBtn" class="primary add-btn"><span class="plus">+</span> Input Pencatatan</button>
       </section>
 
-      <section class="cards">
-        <div class="stat"><span>Hari ini</span><strong id="todayCount">0</strong><small>pencatatan</small></div>
-        <div class="stat"><span>Total kategori</span><strong id="categoryCount">0</strong><small>aktif</small></div>
-        <div class="stat"><span>Transaksi tersimpan</span><strong id="entryCount">0</strong><small>online</small></div>
+      <section class="alert-panel hidden" id="alertPanel">
+        <div class="alert-head"><div><span class="eyebrow">STOCK ALERT</span><h2>Stok perlu diperhatikan</h2><p class="muted">Batas minimum dicek otomatis dari pencatatan terbaru.</p></div><span class="alert-count" id="alertCount">0</span></div>
+        <div id="alertList" class="alert-list"></div>
       </section>
 
-      <section class="panel">
+      <section class="stats-grid">
+        <div class="stat stat-main"><div class="stat-icon">◷</div><div><span>Hari ini</span><strong id="todayCount">0</strong><small>pencatatan</small></div></div>
+        <div class="stat"><div class="stat-icon blue">▦</div><div><span>Kategori aktif</span><strong id="categoryCount">0</strong><small>dari 7 kategori</small></div></div>
+        <div class="stat"><div class="stat-icon green">✓</div><div><span>Total pencatatan</span><strong id="entryCount">0</strong><small>tersimpan online</small></div></div>
+      </section>
+
+      <section class="category-section">
+        <div class="section-title"><div><span class="eyebrow">QUICK ACCESS</span><h2>Kategori pencatatan</h2></div></div>
+        <div class="category-grid" id="categoryCards"></div>
+      </section>
+
+      <section class="panel history-panel">
         <div class="panel-head">
-          <div><h2>Pencatatan</h2><p class="muted">Pilih kategori dan periode untuk melihat data.</p></div>
-          <div class="filters">
-            <select id="categoryFilter"></select>
-            <input id="dateFilter" type="date">
-          </div>
+          <div><span class="eyebrow">HISTORY</span><h2>Riwayat pencatatan</h2><p class="muted">Pilih kategori atau tanggal untuk menyaring data.</p></div>
+          <div class="filters"><select id="categoryFilter"></select><input id="dateFilter" type="date"></div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th>Tanggal</th><th>Kategori</th><th>Item</th>
-              <th>Saldo Awal</th><th>Pemasukan</th><th>Pemakaian</th><th>Saldo Akhir</th><th>Aksi</th>
-            </tr></thead>
-            <tbody id="entriesBody"></tbody>
-          </table>
-        </div>
-        <div id="emptyState" class="empty hidden">Belum ada pencatatan.</div>
+        <div class="table-wrap"><table><thead id="entriesHead"></thead><tbody id="entriesBody"></tbody></table></div>
+        <div id="emptyState" class="empty hidden"><div class="empty-icon">⌁</div><strong>Belum ada pencatatan</strong><span>Mulai dengan menekan tombol “Input Pencatatan”.</span></div>
       </section>
     </main>
   </div>
 
-  <div id="entryModal" class="modal hidden">
-    <div class="modal-card">
-      <div class="modal-head">
-        <div><h2 id="modalTitle">Input Pencatatan</h2><p id="modeHelp" class="muted"></p></div>
-        <button id="closeModal" class="icon-btn">×</button>
-      </div>
-      <form id="entryForm">
-        <input id="entryId" type="hidden">
-        <div class="grid2">
-          <label>Tanggal<input id="entryDate" type="date" required></label>
-          <label>Kategori<select id="entryCategory" required></select></label>
-        </div>
-        <label>Nama item<input id="entryItem" type="text" required placeholder="Contoh: Garam, PAC, CNG"></label>
-
-        <div id="flowFields">
-          <div class="grid3">
-            <label>Saldo Awal<input id="opening" type="number" step="any" min="0" value="0"></label>
-            <label>Pemasukan<input id="incoming" type="number" step="any" min="0" value="0"></label>
-            <label>Pemakaian<input id="usage" type="number" step="any" min="0" value="0"></label>
-          </div>
-          <div class="calculated"><span>Saldo Akhir otomatis</span><strong id="closingPreview">0</strong></div>
-        </div>
-
-        <div id="meterFields" class="hidden">
-          <div class="grid2">
-            <label>Saldo Awal<input id="meterOpening" type="number" step="any" min="0" value="0"></label>
-            <label>Saldo Akhir<input id="meterClosing" type="number" step="any" min="0" value="0"></label>
-          </div>
-          <div class="calculated"><span>Pemakaian otomatis = Saldo Akhir − Saldo Awal</span><strong id="meterUsagePreview">0</strong></div>
-        </div>
-
-        <label>Catatan<textarea id="notes" rows="3" placeholder="Opsional"></textarea></label>
-        <div id="formMsg" class="message"></div>
-        <div class="modal-actions">
-          <button type="button" id="cancelBtn" class="ghost">Batal</button>
-          <button type="submit" class="primary">Simpan</button>
-        </div>
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-card small-modal">
+      <div class="modal-head"><div><span class="eyebrow">ADMIN</span><h2>Pengaturan batas minimum</h2><p class="muted">Tentukan stok minimum per item.</p></div><button id="closeSettings" class="icon-btn">×</button></div>
+      <form id="settingsForm">
+        <div class="grid2"><label>Kategori<select id="settingCategory"></select></label><label>Nama item<input id="settingItem" required placeholder="Contoh: PAC"></label></div>
+        <div class="grid2"><label>Batas minimum<input id="settingMinimum" type="number" step="any" min="0" required value="0"></label><label>Satuan<input id="settingUnit" placeholder="kg / Nm³ / m³"></label></div>
+        <div id="settingsMsg" class="message"></div>
+        <div class="modal-actions"><button type="button" id="cancelSettings" class="ghost">Batal</button><button type="submit" class="primary">Simpan Batas</button></div>
       </form>
+      <div class="settings-table-wrap"><table><thead><tr><th>Kategori</th><th>Item</th><th>Minimum</th><th>Aksi</th></tr></thead><tbody id="settingsBody"></tbody></table></div>
     </div>
   </div>
 
+  <div id="entryModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head"><div><span class="eyebrow">DATA ENTRY</span><h2 id="modalTitle">Input Pencatatan</h2><p id="modeHelp" class="muted"></p></div><button id="closeModal" class="icon-btn">×</button></div>
+      <form id="entryForm">
+        <input id="entryId" type="hidden">
+        <div class="grid2"><label>Tanggal<input id="entryDate" type="date" required></label><label>Kategori<select id="entryCategory" required></select></label></div>
+        <label>Nama item<input id="entryItem" type="text" required placeholder="Contoh: Garam, PAC, CNG"></label>
+        <div id="flowFields">
+          <div class="grid3"><label>Saldo Awal<input id="opening" type="number" step="any" min="0" value="0"></label><label>Pemasukan<input id="incoming" type="number" step="any" min="0" value="0"></label><label>Pemakaian<input id="usage" type="number" step="any" min="0" value="0"></label></div>
+          <div class="calculated"><span>Saldo Akhir otomatis</span><strong id="closingPreview">0</strong></div>
+        </div>
+        <div id="meterFields" class="hidden">
+          <div class="meter-info"><span>MODE METER • 24 JAM</span><b>00:00 → 00:00</b></div>
+          <div class="grid2"><label>Saldo Awal · 00:00<input id="meterOpening" type="number" step="any" min="0" value="0"></label><label>Saldo Akhir · 00:00 berikutnya<input id="meterClosing" type="number" step="any" min="0" value="0"></label></div>
+          <div class="calculated meter-calc"><span>DF = Saldo Akhir − Saldo Awal</span><strong id="meterUsagePreview">0</strong></div>
+        </div>
+        <label>Catatan<textarea id="notes" rows="3" placeholder="Opsional"></textarea></label>
+        <div id="formMsg" class="message"></div>
+        <div class="modal-actions"><button type="button" id="cancelBtn" class="ghost">Batal</button><button type="submit" class="primary">Simpan Data</button></div>
+      </form>
+    </div>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>
