@@ -62,6 +62,20 @@
         </div>
       </section>
 
+      <section class="report-section" id="reportSection">
+        <div class="section-title"><div><span class="eyebrow">REPORT V6</span><h2>Rekap bulanan & tahunan</h2><p class="muted">Ringkasan saldo, pemasukan, pemakaian, dan saldo akhir berdasarkan periode.</p></div><span class="badge" id="reportTotal">0 baris</span></div>
+        <div class="report-toolbar">
+          <label>Tahun<select id="reportYear"></select></label>
+          <label>Bulan<select id="reportMonth"><option value="">Semua Bulan</option><option value="01">Januari</option><option value="02">Februari</option><option value="03">Maret</option><option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option><option value="07">Juli</option><option value="08">Agustus</option><option value="09">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option></select></label>
+          <label>Kategori<select id="reportCategory"></select></label>
+          <label>Item<select id="reportItem"><option value="">Semua Item</option></select></label>
+          <div class="report-actions"><button id="exportCsvBtn" class="ghost">⬇ Excel / CSV</button><button id="printReportBtn" class="primary">🖨 Print / PDF</button></div>
+        </div>
+        <div class="report-summary" id="reportSummary"></div>
+        <div class="table-wrap"><table><thead><tr><th>Bulan</th><th>Kategori</th><th>Item</th><th>Saldo Awal</th><th>Pemasukan</th><th>Pemakaian</th><th>Saldo Akhir</th><th>Mode</th></tr></thead><tbody id="reportBody"></tbody></table></div>
+        <div id="reportEmpty" class="empty hidden"><div class="empty-icon">▤</div><strong>Tidak ada data periode ini</strong><span>Coba ubah tahun, bulan, kategori, atau item.</span></div>
+      </section>
+
       <section class="category-section">
         <div class="section-title"><div><span class="eyebrow">QUICK ACCESS</span><h2>Kategori pencatatan</h2></div></div>
         <div class="category-grid" id="categoryCards"></div>

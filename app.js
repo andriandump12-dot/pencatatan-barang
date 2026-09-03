@@ -62,7 +62,7 @@ async function loadLimits(){
 async function loadEntries(){
   const {data,error}=await db.from('stock_entries').select('*').order('tanggal',{ascending:false}).order('created_at',{ascending:false});
   if(error){setMessage($('authMsg'),`Gagal mengambil data: ${error.message}`,'error');return;}
-  entries=data||[];renderEntries();updateStats();renderAlerts();renderDashboard();renderDashboard();
+  entries=data||[];renderEntries();updateStats();renderAlerts();renderDashboard();initReportFilters();renderReport();
 }
 function latestByItem(){
   const map=new Map();
@@ -131,6 +131,56 @@ function renderDashboard(){
   $('dashboardUpdated').textContent='Realtime • '+new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
 }
 
+function getReportRows(){
+  const year=$('reportYear').value, month=$('reportMonth').value, cat=$('reportCategory').value, item=$('reportItem').value;
+  return entries.filter(e=>{
+    const ym=monthKey(e.tanggal), y=ym.slice(0,4), m=ym.slice(5,7);
+    return (!year||y===year)&&(!month||m===month)&&(!cat||e.kategori===cat)&&(!item||e.nama_item===item);
+  }).sort((a,b)=>`${a.tanggal}${a.kategori}${a.nama_item}`.localeCompare(`${b.tanggal}${b.kategori}${b.nama_item}`));
+}
+function initReportFilters(){
+  const years=new Set(entries.map(e=>String(e.tanggal||'').slice(0,4)).filter(Boolean));
+  const current=String(new Date().getFullYear()); years.add(current);
+  $('reportYear').innerHTML=[...years].sort((a,b)=>b.localeCompare(a)).map(y=>`<option value="${y}">${y}</option>`).join('');
+  $('reportYear').value=current;
+  $('reportCategory').innerHTML='<option value="">Semua kategori</option>'+CATEGORIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
+  updateReportItems();
+}
+function updateReportItems(){
+  const cat=$('reportCategory').value;
+  const items=[...new Set(entries.filter(e=>!cat||e.kategori===cat).map(e=>e.nama_item))].sort((a,b)=>a.localeCompare(b));
+  const old=$('reportItem').value;
+  $('reportItem').innerHTML='<option value="">Semua Item</option>'+items.map(i=>`<option value="${esc(i)}">${esc(i)}</option>`).join('');
+  if(items.includes(old))$('reportItem').value=old;
+}
+function renderReport(){
+  if(!$('reportBody'))return;
+  const rows=getReportRows();
+  $('reportTotal').textContent=`${rows.length} baris`;
+  const flow=rows.filter(e=>getCategory(e.kategori).mode==='flow');
+  const meter=rows.filter(e=>getCategory(e.kategori).mode==='meter');
+  const totalIncoming=flow.reduce((s,e)=>s+Number(e.pemasukan||0),0);
+  const totalUsage=rows.reduce((s,e)=>s+Number(e.pemakaian||0),0);
+  const latest=rows.length?rows[rows.length-1]:null;
+  $('reportSummary').innerHTML=`<div class="report-card"><span>Total Pemasukan</span><strong>${fmt(totalIncoming)}</strong></div><div class="report-card"><span>Total Pemakaian</span><strong>${fmt(totalUsage)}</strong></div><div class="report-card"><span>Data Flow</span><strong>${flow.length}</strong></div><div class="report-card"><span>Data Meter</span><strong>${meter.length}</strong></div><div class="report-card"><span>Saldo Akhir Terakhir</span><strong>${latest?fmt(latest.saldo_akhir):'0'}</strong></div>`;
+  $('reportBody').innerHTML=rows.map(e=>{const c=getCategory(e.kategori);return `<tr><td>${esc(new Date(e.tanggal+'T00:00:00').toLocaleDateString('id-ID',{month:'long',year:'numeric'}))}</td><td>${esc(e.kategori)}</td><td><strong>${esc(e.nama_item)}</strong></td><td>${fmt(e.saldo_awal)}</td><td>${fmt(e.pemasukan)}</td><td>${fmt(e.pemakaian)}</td><td><strong>${fmt(e.saldo_akhir)}</strong></td><td><span class="badge">${c.mode==='flow'?'FLOW':'METER'}</span></td></tr>`;}).join('');
+  $('reportEmpty').classList.toggle('hidden',rows.length>0);
+}
+function exportReportCsv(){
+  const rows=getReportRows();
+  const header=['Bulan','Tanggal','Kategori','Item','Saldo Awal','Pemasukan','Pemakaian','Saldo Akhir','Mode'];
+  const data=rows.map(e=>[new Date(e.tanggal+'T00:00:00').toLocaleDateString('id-ID',{month:'long',year:'numeric'}),e.tanggal,e.kategori,e.nama_item,e.saldo_awal,e.pemasukan,e.pemakaian,e.saldo_akhir,getCategory(e.kategori).mode==='flow'?'FLOW':'METER']);
+  const csv='\\ufeff'+[header,...data].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}), url=URL.createObjectURL(blob), a=document.createElement('a');
+  const y=$('reportYear').value||'semua',m=$('reportMonth').value||'semua';a.href=url;a.download=`StockLog-Rekap-${y}-${m}.csv`;a.click();URL.revokeObjectURL(url);
+}
+function printReport(){
+  const rows=getReportRows(); if(!rows.length){alert('Tidak ada data untuk dicetak.');return;}
+  const title=`StockLog — Rekap ${$('reportMonth').selectedOptions[0].text} ${$('reportYear').value}`;
+  const win=window.open('','_blank');
+  win.document.write(`<html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{margin-bottom:4px}p{color:#555}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:8px;font-size:12px;text-align:left}th{background:#eee}.num{text-align:right}</style></head><body><h1>${title}</h1><p>Dicetak ${new Date().toLocaleString('id-ID')}</p><table><thead><tr><th>Bulan</th><th>Tanggal</th><th>Kategori</th><th>Item</th><th>Saldo Awal</th><th>Pemasukan</th><th>Pemakaian</th><th>Saldo Akhir</th><th>Mode</th></tr></thead><tbody>${rows.map(e=>`<tr><td>${new Date(e.tanggal+'T00:00:00').toLocaleDateString('id-ID',{month:'long',year:'numeric'})}</td><td>${e.tanggal}</td><td>${esc(e.kategori)}</td><td>${esc(e.nama_item)}</td><td class="num">${fmt(e.saldo_awal)}</td><td class="num">${fmt(e.pemasukan)}</td><td class="num">${fmt(e.pemakaian)}</td><td class="num">${fmt(e.saldo_akhir)}</td><td>${getCategory(e.kategori).mode==='flow'?'FLOW':'METER'}</td></tr>`).join('')}</tbody></table></body></html>`);win.document.close();win.focus();setTimeout(()=>win.print(),300);
+}
+
 function updateStats(){const t=today();$('todayCount').textContent=entries.filter(e=>e.tanggal===t).length;$('categoryCount').textContent=new Set(entries.map(e=>e.kategori)).size;$('entryCount').textContent=entries.length;}
 
 function openModal(entry=null){
@@ -173,7 +223,7 @@ function showAuth(){$('appView').classList.add('hidden');$('authView').classList
 
 $('loginTab').addEventListener('click',()=>{authMode='login';$('loginTab').classList.add('active');$('signupTab').classList.remove('active');$('authSubmit').textContent='Login';setMessage($('authMsg'));});
 $('signupTab').addEventListener('click',()=>{authMode='signup';$('signupTab').classList.add('active');$('loginTab').classList.remove('active');$('authSubmit').textContent='Daftar';setMessage($('authMsg'));});
-$('authForm').addEventListener('submit',handleAuth);$('logoutBtn').addEventListener('click',async()=>{if(realtimeChannel)db.removeChannel(realtimeChannel);await db.auth.signOut();showAuth();});$('newEntryBtn').addEventListener('click',()=>openModal());$('closeModal').addEventListener('click',closeModal);$('cancelBtn').addEventListener('click',closeModal);$('entryForm').addEventListener('submit',saveEntry);$('entryCategory').addEventListener('change',updateModeUI);$('categoryFilter').addEventListener('change',renderEntries);$('dateFilter').addEventListener('change',renderEntries);['opening','incoming','usage','meterOpening','meterClosing'].forEach(id=>$(id).addEventListener('input',updatePreview));$('entryItem').addEventListener('blur',syncOpeningBalance);$('entryDate').addEventListener('change',syncOpeningBalance);$('entryCategory').addEventListener('change',syncOpeningBalance);$('settingsBtn').addEventListener('click',openSettings);$('closeSettings').addEventListener('click',closeSettings);$('cancelSettings').addEventListener('click',closeSettings);$('settingsForm').addEventListener('submit',saveLimit);$('notifyBtn').addEventListener('click',enableNotifications);
+$('authForm').addEventListener('submit',handleAuth);$('reportYear').addEventListener('change',renderReport);$('reportMonth').addEventListener('change',renderReport);$('reportCategory').addEventListener('change',()=>{updateReportItems();renderReport();});$('reportItem').addEventListener('change',renderReport);$('exportCsvBtn').addEventListener('click',exportReportCsv);$('printReportBtn').addEventListener('click',printReport);$('logoutBtn').addEventListener('click',async()=>{if(realtimeChannel)db.removeChannel(realtimeChannel);await db.auth.signOut();showAuth();});$('newEntryBtn').addEventListener('click',()=>openModal());$('closeModal').addEventListener('click',closeModal);$('cancelBtn').addEventListener('click',closeModal);$('entryForm').addEventListener('submit',saveEntry);$('entryCategory').addEventListener('change',updateModeUI);$('categoryFilter').addEventListener('change',renderEntries);$('dateFilter').addEventListener('change',renderEntries);['opening','incoming','usage','meterOpening','meterClosing'].forEach(id=>$(id).addEventListener('input',updatePreview));$('entryItem').addEventListener('blur',syncOpeningBalance);$('entryDate').addEventListener('change',syncOpeningBalance);$('entryCategory').addEventListener('change',syncOpeningBalance);$('settingsBtn').addEventListener('click',openSettings);$('closeSettings').addEventListener('click',closeSettings);$('cancelSettings').addEventListener('click',closeSettings);$('settingsForm').addEventListener('submit',saveLimit);$('notifyBtn').addEventListener('click',enableNotifications);
 fillCategorySelects();renderCategoryCards();$('entryDate').value=today();
 
 db.auth.getSession().then(({data})=>{if(data.session)showApp(data.session);});
