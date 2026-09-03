@@ -69,12 +69,54 @@ function latestByItem(){
   [...entries].sort((a,b)=>`${b.tanggal}${b.created_at||''}`.localeCompare(`${a.tanggal}${a.created_at||''}`)).forEach(e=>{const k=`${e.kategori}|||${e.nama_item}`;if(!map.has(k))map.set(k,e);});
   return map;
 }
+function getItemPrediction(kategori,item){
+  const cat=getCategory(kategori);
+  if(cat.mode!=='flow')return null;
+  const now=new Date();
+  const cutoff=new Date(now); cutoff.setDate(cutoff.getDate()-30);
+  const history=entries.filter(e=>e.kategori===kategori&&e.nama_item===item&&getCategory(e.kategori).mode==='flow'&&new Date(e.tanggal+'T23:59:59')>=cutoff);
+  if(!history.length)return {avg:0,days:null,usage30:0,daysCount:0};
+  const usage30=history.reduce((s,e)=>s+Math.max(0,Number(e.pemakaian||0)),0);
+  const daysCount=new Set(history.map(e=>e.tanggal)).size;
+  const avg=daysCount?usage30/daysCount:0;
+  const latest=latestByItem().get(`${kategori}|||${item}`);
+  const saldo=latest?Number(latest.saldo_akhir||0):0;
+  const days=avg>0?Math.max(0,saldo/avg):null;
+  return {avg,days,usage30,daysCount};
+}
+function predictionState(days,minimum,saldo){
+  if(days===null)return 'unknown';
+  if(days<=3)return 'critical';
+  if(days<=7)return 'warning';
+  if(minimum!==null && saldo<=minimum)return 'critical';
+  return 'normal';
+}
+function renderPredictions(){
+  const latest=latestByItem();
+  const rows=[...latest.values()].filter(e=>getCategory(e.kategori).mode==='flow').map(e=>{
+    const l=limits.find(x=>x.kategori===e.kategori&&x.nama_item===e.nama_item);
+    const saldo=Number(e.saldo_akhir||0), min=l?Number(l.minimum):null, p=getItemPrediction(e.kategori,e.nama_item);
+    const state=predictionState(p?.days,min,saldo);
+    return {...e,limit:l,p,state};
+  });
+  const attention=rows.filter(x=>x.state==='critical'||x.state==='warning'||(x.limit&&x.saldo<=Number(x.limit.minimum)));
+  $('predictionCount').textContent=`${attention.length} perlu perhatian`;
+  $('predictionGrid').innerHTML=rows.length?rows.map(x=>{
+    const p=x.p, unit=x.limit?.satuan||'';
+    let estimate='Belum cukup histori', sub=p?.daysCount?`${p.daysCount} hari data • rata-rata ${fmt(p.avg)} ${unit}/hari`:'Butuh data pemakaian';
+    if(p?.days!==null){estimate=p.days<=0?'Habis / tidak ada saldo':`± ${Math.ceil(p.days)} hari`;}
+    const label=x.state==='critical'?'KRITIS':x.state==='warning'?'WASPADA':x.state==='unknown'?'BELUM CUKUP DATA':'AMAN';
+    return `<div class="prediction-card ${x.state}"><div class="prediction-top"><span>${esc(x.kategori)}</span><b>${label}</b></div><strong>${esc(x.nama_item)}</strong><div class="prediction-main"><div><small>Stok saat ini</small><b>${fmt(x.saldo)} ${esc(unit)}</b></div><div><small>Estimasi habis</small><b>${estimate}</b></div></div><div class="prediction-meta">${sub}${x.limit?` • min ${fmt(x.limit.minimum)} ${esc(unit)}`:''}</div></div>`;
+  }).join(''):'<div class="dashboard-empty">Belum ada data stok bahan untuk diprediksi.</div>';
+}
+
 function renderAlerts(){
   const latest=latestByItem();
   const alerts=limits.map(l=>{const e=latest.get(`${l.kategori}|||${l.nama_item}`);const saldo=e?Number(e.saldo_akhir):0;return {...l,saldo,entry:e};}).filter(x=>x.saldo<=Number(x.minimum));
   $('alertCount').textContent=alerts.length;
   $('alertPanel').classList.toggle('hidden',alerts.length===0);
-  $('alertList').innerHTML=alerts.map(a=>`<div class="alert-item"><div><strong>🔴 ${a.kategori} • ${a.nama_item}</strong><span>Minimum ${fmt(a.minimum)} ${a.satuan||''} • terakhir ${a.entry?.tanggal||'belum ada data'}</span></div><div class="alert-value">${fmt(a.saldo)} ${a.satuan||''}</div></div>`).join('');
+  $('alertList').innerHTML=alerts.map(a=>`<div class="alert-item"><div><strong>🔴 ${esc(a.kategori)} • ${esc(a.nama_item)}</strong><span>Minimum ${fmt(a.minimum)} ${esc(a.satuan||'')} • terakhir ${esc(a.entry?.tanggal||'belum ada data')}</span></div><div class="alert-value">${fmt(a.saldo)} ${esc(a.satuan||'')}</div></div>`).join('');
+  renderPredictions();
 }
 function filteredEntries(){const c=$('categoryFilter').value,d=$('dateFilter').value;return entries.filter(e=>(!c||e.kategori===c)&&(!d||e.tanggal===d));}
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
@@ -139,12 +181,15 @@ function getReportRows(){
   }).sort((a,b)=>`${a.tanggal}${a.kategori}${a.nama_item}`.localeCompare(`${b.tanggal}${b.kategori}${b.nama_item}`));
 }
 function initReportFilters(){
+  const prevYear=$('reportYear').value, prevCat=$('reportCategory').value, prevItem=$('reportItem').value;
   const years=new Set(entries.map(e=>String(e.tanggal||'').slice(0,4)).filter(Boolean));
   const current=String(new Date().getFullYear()); years.add(current);
   $('reportYear').innerHTML=[...years].sort((a,b)=>b.localeCompare(a)).map(y=>`<option value="${y}">${y}</option>`).join('');
-  $('reportYear').value=current;
+  $('reportYear').value=years.has(prevYear)?prevYear:current;
   $('reportCategory').innerHTML='<option value="">Semua kategori</option>'+CATEGORIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
+  $('reportCategory').value=CATEGORIES.some(c=>c.name===prevCat)?prevCat:'';
   updateReportItems();
+  if([...$('reportItem').options].some(o=>o.value===prevItem))$('reportItem').value=prevItem;
 }
 function updateReportItems(){
   const cat=$('reportCategory').value;
@@ -198,7 +243,17 @@ async function saveEntry(event){
 window.editEntry=id=>{const e=entries.find(x=>x.id===id);if(e)openModal(e);};
 window.deleteEntry=async id=>{const e=entries.find(x=>x.id===id);if(!e||!confirm(`Hapus pencatatan ${e.nama_item} tanggal ${e.tanggal}?`))return;const {error}=await db.from('stock_entries').delete().eq('id',id);if(error)return alert(`Gagal menghapus: ${error.message}`);await loadEntries();};
 
-async function notifyIfLow(kategori,item,saldo){const l=limits.find(x=>x.kategori===kategori&&x.nama_item===item);if(!l||Number(saldo)>Number(l.minimum))return;const title='🚨 StockLog: Stok Menipis';const body=`${kategori} • ${item} tersisa ${fmt(saldo)} ${l.satuan||''} (minimum ${fmt(l.minimum)}).`;if('Notification'in window&&Notification.permission==='granted')new Notification(title,{body});}
+async function notifyIfLow(kategori,item,saldo){
+  const l=limits.find(x=>x.kategori===kategori&&x.nama_item===item); if(!l)return;
+  const p=getItemPrediction(kategori,item); const low=Number(saldo)<=Number(l.minimum); const soon=p?.days!==null&&p?.days<=7;
+  if(!low&&!soon)return;
+  if(!('Notification'in window)||Notification.permission!=='granted')return;
+  const key=`stocklog-notified-${kategori}-${item}-${today()}-${low?'low':'soon'}`;
+  if(localStorage.getItem(key))return;
+  const title=low?'🚨 StockLog: Stok Kritis':'⚠️ StockLog: Stok Diprediksi Menipis';
+  const body=low?`${kategori} • ${item} tersisa ${fmt(saldo)} ${l.satuan||''} (minimum ${fmt(l.minimum)}).`: `${kategori} • ${item} diperkirakan habis dalam ±${Math.ceil(p.days)} hari.`;
+  new Notification(title,{body}); localStorage.setItem(key,'1');
+}
 async function enableNotifications(){if(!('Notification'in window)){alert('Browser ini belum mendukung notifikasi.');return;}const p=await Notification.requestPermission();if(p==='granted'){ $('notifyBtn').textContent='🔔 Notifikasi Aktif'; $('notifyBtn').classList.add('active'); }else alert('Izin notifikasi belum diberikan.');}
 
 async function renderSettings(){
@@ -218,7 +273,7 @@ async function loadProfile(user){
 function subscribeRealtime(){if(realtimeChannel)db.removeChannel(realtimeChannel);realtimeChannel=db.channel('stocklog-live').on('postgres_changes',{event:'*',schema:'public',table:'stock_entries'},async payload=>{await loadEntries();if(payload.eventType==='INSERT'||payload.eventType==='UPDATE')await notifyIfLow(payload.new.kategori,payload.new.nama_item,payload.new.saldo_akhir);}).on('postgres_changes',{event:'*',schema:'public',table:'stock_limits'},loadLimits).on('postgres_changes',{event:'*',schema:'public',table:'stock_activity_logs'},loadActivities).subscribe();}
 
 async function handleAuth(event){event.preventDefault();const email=$('email').value.trim(),password=$('password').value;setMessage($('authMsg'),authMode==='login'?'Memproses login...':'Membuat akun...');const result=authMode==='login'?await db.auth.signInWithPassword({email,password}):await db.auth.signUp({email,password});if(result.error){setMessage($('authMsg'),result.error.message,'error');return;}if(authMode==='signup'&&!result.data.session){setMessage($('authMsg'),'Akun berhasil dibuat. Silakan login.','success');authMode='login';$('authSubmit').textContent='Login';return;}showApp(result.data.session);}
-async function showApp(session){if(!session)return;currentUser=session.user;$('authView').classList.add('hidden');$('appView').classList.remove('hidden');$('userEmail').textContent=session.user.email||'';await loadProfile(session.user);await loadLimits();await loadEntries();if(currentRole==='admin')await loadActivities();subscribeRealtime();}
+async function showApp(session){if(!session)return;currentUser=session.user;$('authView').classList.add('hidden');$('appView').classList.remove('hidden');$('userEmail').textContent=session.user.email||'';if('Notification'in window&&Notification.permission==='granted'){ $('notifyBtn').textContent='🔔 Notifikasi Aktif'; $('notifyBtn').classList.add('active'); }await loadProfile(session.user);await loadLimits();await loadEntries();if(currentRole==='admin')await loadActivities();subscribeRealtime();}
 function showAuth(){$('appView').classList.add('hidden');$('authView').classList.remove('hidden');}
 
 $('loginTab').addEventListener('click',()=>{authMode='login';$('loginTab').classList.add('active');$('signupTab').classList.remove('active');$('authSubmit').textContent='Login';setMessage($('authMsg'));});

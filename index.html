@@ -43,8 +43,8 @@
       </section>
 
       <section class="alert-panel hidden" id="alertPanel">
-        <div class="alert-head"><div><span class="eyebrow">STOCK ALERT</span><h2>Stok perlu diperhatikan</h2><p class="muted">Batas minimum dicek otomatis dari pencatatan terbaru.</p></div><span class="alert-count" id="alertCount">0</span></div>
-        <div id="alertList" class="alert-list"></div>
+        <div class="alert-head"><div><span class="eyebrow">STOCK ALERT V7</span><h2>Stok perlu diperhatikan</h2><p class="muted">Batas minimum dan estimasi stok habis dihitung otomatis.</p></div><span class="alert-count" id="alertCount">0</span></div>
+        <div id="alertList" class="alert-list"></div><div id="predictionList" class="prediction-list"></div>
       </section>
 
       <section class="stats-grid">
@@ -60,6 +60,11 @@
           <div class="panel mini-panel"><div class="panel-head"><div><span class="eyebrow">MONTHLY</span><h2>Pemakaian bulan ini</h2><p class="muted" id="monthLabel"></p></div></div><div class="usage-summary"><strong id="monthUsage">0</strong><span>Total pemakaian</span></div><div id="usageBars" class="usage-bars"></div></div>
           <div class="panel mini-panel"><div class="panel-head"><div><span class="eyebrow">STATUS</span><h2>Kondisi kategori</h2><p class="muted">Berdasarkan pencatatan terbaru.</p></div></div><div id="categoryStatus" class="category-status"></div></div>
         </div>
+      </section>
+
+      <section class="prediction-section" id="predictionSection">
+        <div class="section-title"><div><span class="eyebrow">PREDICTION V7</span><h2>Prediksi stok habis</h2><p class="muted">Estimasi memakai rata-rata pemakaian 30 hari terakhir. Hanya berlaku untuk stok bahan (FLOW).</p></div><span class="badge" id="predictionCount">0 perlu perhatian</span></div>
+        <div id="predictionGrid" class="prediction-grid"></div>
       </section>
 
       <section class="report-section" id="reportSection">
