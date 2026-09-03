@@ -14,7 +14,7 @@ const CATEGORIES = [
 ];
 
 const $ = id => document.getElementById(id);
-let authMode = 'login', entries = [], limits = [], currentRole = 'operator', realtimeChannel = null;
+let authMode = 'login', entries = [], limits = [], currentRole = 'operator', realtimeChannel = null, currentUser = null;
 
 function today(){ return new Date().toISOString().slice(0,10); }
 function num(id){ const v=parseFloat($(id).value); return Number.isFinite(v)?v:0; }
@@ -77,10 +77,17 @@ function renderAlerts(){
   $('alertList').innerHTML=alerts.map(a=>`<div class="alert-item"><div><strong>🔴 ${a.kategori} • ${a.nama_item}</strong><span>Minimum ${fmt(a.minimum)} ${a.satuan||''} • terakhir ${a.entry?.tanggal||'belum ada data'}</span></div><div class="alert-value">${fmt(a.saldo)} ${a.satuan||''}</div></div>`).join('');
 }
 function filteredEntries(){const c=$('categoryFilter').value,d=$('dateFilter').value;return entries.filter(e=>(!c||e.kategori===c)&&(!d||e.tanggal===d));}
+function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+function actorLabel(e){return e.created_by_email||e.updated_by_email||'Belum tercatat';}
 function renderEntries(){
   const rows=filteredEntries(),meter=$('categoryFilter').value&&getCategory($('categoryFilter').value).mode==='meter';
-  if(meter){$('entriesHead').innerHTML='<tr><th>Tanggal</th><th>Kategori</th><th>Item</th><th>Saldo Awal · 00:00</th><th>Saldo Akhir · 00:00</th><th>DF</th><th>Aksi</th></tr>';$('entriesBody').innerHTML=rows.map(e=>`<tr><td>${e.tanggal} <span class="badge">24 JAM</span></td><td>${e.kategori}</td><td><strong>${e.nama_item}</strong></td><td>${fmt(e.saldo_awal)}</td><td><strong>${fmt(e.saldo_akhir)}</strong></td><td><strong>${fmt(e.saldo_akhir-e.saldo_awal)}</strong></td><td class="actions"><button class="small" onclick="editEntry('${e.id}')">Edit</button><button class="small danger" onclick="deleteEntry('${e.id}')">Hapus</button></td></tr>`).join('');}
-  else{$('entriesHead').innerHTML='<tr><th>Tanggal</th><th>Kategori</th><th>Item</th><th>Saldo Awal</th><th>Pemasukan</th><th>Pemakaian</th><th>Saldo Akhir</th><th>Aksi</th></tr>';$('entriesBody').innerHTML=rows.map(e=>`<tr><td>${e.tanggal}</td><td>${e.kategori}</td><td><strong>${e.nama_item}</strong></td><td>${fmt(e.saldo_awal)}</td><td>${fmt(e.pemasukan)}</td><td>${fmt(e.pemakaian)}</td><td><strong>${fmt(e.saldo_akhir)}</strong></td><td class="actions"><button class="small" onclick="editEntry('${e.id}')">Edit</button><button class="small danger" onclick="deleteEntry('${e.id}')">Hapus</button></td></tr>`).join('');}
+  if(meter){
+    $('entriesHead').innerHTML='<tr><th>Tanggal</th><th>Kategori</th><th>Item</th><th>Saldo Awal · 00:00</th><th>Saldo Akhir · 00:00</th><th>DF</th><th>Diinput oleh</th><th>Aksi</th></tr>';
+    $('entriesBody').innerHTML=rows.map(e=>`<tr><td>${e.tanggal} <span class="badge">24 JAM</span></td><td>${esc(e.kategori)}</td><td><strong>${esc(e.nama_item)}</strong></td><td>${fmt(e.saldo_awal)}</td><td><strong>${fmt(e.saldo_akhir)}</strong></td><td><strong>${fmt(e.saldo_akhir-e.saldo_awal)}</strong></td><td><span class="actor">${esc(actorLabel(e))}</span></td><td class="actions"><button class="small" onclick="editEntry('${e.id}')">Edit</button><button class="small danger" onclick="deleteEntry('${e.id}')">Hapus</button></td></tr>`).join('');
+  } else {
+    $('entriesHead').innerHTML='<tr><th>Tanggal</th><th>Kategori</th><th>Item</th><th>Saldo Awal</th><th>Pemasukan</th><th>Pemakaian</th><th>Saldo Akhir</th><th>Diinput oleh</th><th>Aksi</th></tr>';
+    $('entriesBody').innerHTML=rows.map(e=>`<tr><td>${e.tanggal}</td><td>${esc(e.kategori)}</td><td><strong>${esc(e.nama_item)}</strong></td><td>${fmt(e.saldo_awal)}</td><td>${fmt(e.pemasukan)}</td><td>${fmt(e.pemakaian)}</td><td><strong>${fmt(e.saldo_akhir)}</strong></td><td><span class="actor">${esc(actorLabel(e))}</span></td><td class="actions"><button class="small" onclick="editEntry('${e.id}')">Edit</button><button class="small danger" onclick="deleteEntry('${e.id}')">Hapus</button></td></tr>`).join('');
+  }
   $('emptyState').classList.toggle('hidden',rows.length>0);
 }
 function updateStats(){const t=today();$('todayCount').textContent=entries.filter(e=>e.tanggal===t).length;$('categoryCount').textContent=new Set(entries.map(e=>e.kategori)).size;$('entryCount').textContent=entries.length;}
@@ -94,7 +101,7 @@ async function saveEntry(event){
   let saldo_awal,pemasukan,pemakaian,saldo_akhir;
   if(cat.mode==='flow'){saldo_awal=num('opening');pemasukan=num('incoming');pemakaian=num('usage');saldo_akhir=saldo_awal+pemasukan-pemakaian;if(saldo_akhir<0){setMessage($('formMsg'),'Saldo akhir tidak boleh negatif.','error');return;}}
   else{saldo_awal=num('meterOpening');saldo_akhir=num('meterClosing');pemasukan=0;pemakaian=saldo_akhir-saldo_awal;if(pemakaian<0){setMessage($('formMsg'),'Saldo akhir tidak boleh lebih kecil dari saldo awal untuk meter.','error');return;}}
-  setMessage($('formMsg'),'Menyimpan...');const payload={tanggal,kategori,nama_item,saldo_awal,pemasukan,pemakaian,saldo_akhir,catatan};const result=id?await db.from('stock_entries').update(payload).eq('id',id):await db.from('stock_entries').insert(payload);
+  setMessage($('formMsg'),'Menyimpan...');const email=currentUser?.email||'';const payload={tanggal,kategori,nama_item,saldo_awal,pemasukan,pemakaian,saldo_akhir,catatan};let result;if(id){result=await db.from('stock_entries').update({...payload,updated_by_email:email}).eq('id',id);}else{result=await db.from('stock_entries').insert({...payload,created_by_email:email,updated_by_email:email});}
   if(result.error){setMessage($('formMsg'),`Gagal menyimpan: ${result.error.message}`,'error');return;}closeModal();await loadEntries();await notifyIfLow(kategori,nama_item,saldo_akhir);
 }
 window.editEntry=id=>{const e=entries.find(x=>x.id===id);if(e)openModal(e);};
@@ -120,7 +127,7 @@ async function loadProfile(user){
 function subscribeRealtime(){if(realtimeChannel)db.removeChannel(realtimeChannel);realtimeChannel=db.channel('stocklog-live').on('postgres_changes',{event:'*',schema:'public',table:'stock_entries'},async payload=>{await loadEntries();if(payload.eventType==='INSERT'||payload.eventType==='UPDATE')await notifyIfLow(payload.new.kategori,payload.new.nama_item,payload.new.saldo_akhir);}).on('postgres_changes',{event:'*',schema:'public',table:'stock_limits'},loadLimits).subscribe();}
 
 async function handleAuth(event){event.preventDefault();const email=$('email').value.trim(),password=$('password').value;setMessage($('authMsg'),authMode==='login'?'Memproses login...':'Membuat akun...');const result=authMode==='login'?await db.auth.signInWithPassword({email,password}):await db.auth.signUp({email,password});if(result.error){setMessage($('authMsg'),result.error.message,'error');return;}if(authMode==='signup'&&!result.data.session){setMessage($('authMsg'),'Akun berhasil dibuat. Silakan login.','success');authMode='login';$('authSubmit').textContent='Login';return;}showApp(result.data.session);}
-async function showApp(session){if(!session)return;$('authView').classList.add('hidden');$('appView').classList.remove('hidden');$('userEmail').textContent=session.user.email||'';await loadProfile(session.user);await loadLimits();await loadEntries();subscribeRealtime();}
+async function showApp(session){if(!session)return;currentUser=session.user;$('authView').classList.add('hidden');$('appView').classList.remove('hidden');$('userEmail').textContent=session.user.email||'';await loadProfile(session.user);await loadLimits();await loadEntries();subscribeRealtime();}
 function showAuth(){$('appView').classList.add('hidden');$('authView').classList.remove('hidden');}
 
 $('loginTab').addEventListener('click',()=>{authMode='login';$('loginTab').classList.add('active');$('signupTab').classList.remove('active');$('authSubmit').textContent='Login';setMessage($('authMsg'));});
