@@ -351,3 +351,30 @@ input,select,textarea{border-radius:13px;border-color:#e0e7ef;background:#fbfcfe
 .recon-message{margin-top:12px;padding:12px 14px;border-radius:14px;background:#f8fafc;color:#475569;font-size:11px;border:1px solid #e2e8f0}.recon-message.good{background:#f0fdf4;border-color:#bbf7d0;color:#166534}.recon-message.warning{background:#fffbeb;border-color:#fde68a;color:#92400e}.recon-message.bad{background:#fef2f2;border-color:#fecaca;color:#991b1b}
 @media(max-width:1000px){.recon-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.recon-card:last-child{grid-column:1/-1}}
 @media(max-width:600px){.meter-reconciliation{padding:15px;border-radius:18px}.recon-head{flex-direction:column}.recon-status{align-self:flex-start}.recon-grid{grid-template-columns:1fr}.recon-card:last-child{grid-column:auto}.recon-card strong{font-size:20px}}
+
+/* V18 UI FIX: input/settings are normal pages, not blocking popups. */
+body[data-page="input"] .page-section.page-input,
+body[data-page="settings"] .page-section.page-settings,
+body[data-page="stock"] .page-section.page-stock { display:block!important; }
+body[data-page="input"] .page-section.page-input,
+body[data-page="settings"] .page-section.page-settings { margin-top:0; }
+.entry-page-inner,
+.settings-page-inner { width:100%; }
+.entry-page,
+.settings-page { max-width:900px; margin:0 auto 24px; }
+.entry-page .modal-head,
+.settings-page .modal-head { margin-bottom:18px; }
+.entry-page .modal-actions,
+.settings-page .modal-actions { position:static; }
+.entry-page .icon-btn,
+.settings-page .icon-btn { cursor:pointer; }
+/* The old V17 rule hid all .page-home on the stock page; keep stock-only sections visible. */
+body[data-page="stock"] .page-section.page-home:not(.page-stock) { display:none!important; }
+body[data-page="stock"] .page-section.page-stock { display:block!important; }
+body[data-page="input"] .page-section:not(.page-input) { display:none!important; }
+body[data-page="settings"] .page-section:not(.page-settings) { display:none!important; }
+@media (max-width:700px){
+  .entry-page,.settings-page{margin-left:0;margin-right:0;border-radius:18px;padding:16px 14px;}
+  .entry-page .modal-head,.settings-page .modal-head{position:static;background:transparent;padding:0;margin-bottom:12px;}
+  .entry-page .modal-actions,.settings-page .modal-actions{display:grid;grid-template-columns:1fr 1.35fr;gap:8px;margin-top:14px;padding:0;background:transparent;border:0;}
+}

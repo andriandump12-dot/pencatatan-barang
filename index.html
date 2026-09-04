@@ -61,7 +61,7 @@
         <button id="newEntryBtn" class="primary add-btn"><span class="plus">+</span> Input Pencatatan</button>
       </section>
 
-      <section class="panel notification-panel hidden page-section page-notifications" id="notificationPanel">
+      <section class="panel notification-panel page-section page-notifications" id="notificationPanel">
         <div class="panel-head"><div><span class="eyebrow">ADMIN NOTIFICATIONS V8</span><h2>Pusat Notifikasi</h2><p class="muted">Alert stok, aktivitas operator, dan kondisi item terbaru.</p></div><div class="notification-actions"><button id="markNotificationsRead" class="ghost small">Tandai dibaca</button><span class="badge" id="notificationSummary">0 notifikasi</span></div></div>
         <div id="notificationList" class="notification-list"></div>
         <div id="notificationEmpty" class="empty hidden"><div class="empty-icon">🔔</div><strong>Belum ada notifikasi</strong><span>Notifikasi stok dan aktivitas akan muncul di sini.</span></div>
@@ -139,11 +139,9 @@
         <div class="table-wrap"><table><thead id="entriesHead"></thead><tbody id="entriesBody"></tbody></table></div>
         <div id="emptyState" class="empty hidden"><div class="empty-icon">⌁</div><strong>Belum ada pencatatan</strong><span>Mulai dengan menekan tombol “Input Pencatatan”.</span></div>
       </section>
-    </main>
-  </div>
 
-  <div id="settingsModal" class="modal hidden">
-    <div class="modal-card small-modal">
+  <section id="settingsModal" class="panel page-section page-settings settings-page">
+    <div class="settings-page-inner">
       <div class="modal-head"><div><span class="eyebrow">ADMIN</span><h2>Pengaturan batas minimum</h2><p class="muted">Tentukan stok minimum per item.</p></div><button id="closeSettings" class="icon-btn">×</button></div>
       <form id="settingsForm">
         <div class="grid2"><label>Kategori<select id="settingCategory"></select></label><label>Nama item<input id="settingItem" required placeholder="Contoh: PAC"></label></div>
@@ -155,10 +153,10 @@
       <div class="settings-users-head"><div><span class="eyebrow">USER MANAGEMENT V10</span><h3>Kelola Operator</h3><p class="muted">Aktif/nonaktifkan akses aplikasi dan ubah role. Password tetap dikelola lewat Supabase Auth.</p></div><span class="badge" id="profileCount">0 user</span></div>
       <div class="settings-table-wrap"><table><thead><tr><th>Nama</th><th>ID</th><th>Role</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="profilesBody"></tbody></table></div>
     </div>
-  </div>
+  </section>
 
-  <div id="entryModal" class="modal hidden">
-    <div class="modal-card">
+  <section id="entryModal" class="panel page-section page-input entry-page">
+    <div class="entry-page-inner">
       <div class="modal-head"><div><span class="eyebrow">DATA ENTRY</span><h2 id="modalTitle">Input Pencatatan</h2><p id="modeHelp" class="muted"></p></div><button id="closeModal" class="icon-btn">×</button></div>
       <form id="entryForm">
         <input id="entryId" type="hidden">
@@ -178,7 +176,10 @@
         <div class="modal-actions"><button type="button" id="cancelBtn" class="ghost">Batal</button><button type="submit" class="primary">Simpan Data</button></div>
       </form>
     </div>
+  </section>
+    </main>
   </div>
+
   <script src="app.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
