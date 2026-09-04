@@ -59,3 +59,24 @@ body.modal-open{overflow:hidden;position:fixed;left:0;right:0;width:100%;touch-a
 /* V10 ADMIN USER MANAGEMENT */
 .settings-users-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:24px;padding-top:18px;border-top:1px solid #edf0f4}.settings-users-head h3{margin:4px 0 2px;font-size:16px}.settings-users-head .muted{font-size:10px}.table-sub{display:block;color:#98a2b3;font-size:8px;margin-top:3px;max-width:180px;overflow:hidden;text-overflow:ellipsis}.status-pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:900}.status-pill.on{background:#ecfdf3;color:#15803d}.status-pill.off{background:#fef2f2;color:#b91c1c}.settings-table-wrap td .small{margin:2px}
 @media(max-width:700px){.settings-users-head{align-items:flex-start;flex-direction:column}.settings-table-wrap table{min-width:760px}}
+
+
+/* V11 — fokus laporan lapangan */
+.admin-copy{display:block}.operator-copy{display:none}
+.operator-mode .admin-copy{display:none}
+.operator-mode .operator-copy{display:block}
+.operator-mode .dashboard-section,
+.operator-mode .prediction-section,
+.operator-mode .report-section,
+.operator-mode #activityPanel{display:none !important}
+.operator-mode .stats-grid{display:none}
+.operator-mode .category-section{margin-top:10px}
+.operator-mode .category-grid{margin-top:12px}
+.operator-mode .category-card{min-height:88px}
+.operator-mode .category-card::after{content:'Buat laporan';display:block;font-size:12px;opacity:.65;margin-top:5px}
+.operator-mode .history-panel{margin-top:22px}
+.operator-mode .history-panel .panel-head p{max-width:520px}
+@media (min-width:900px){
+  .operator-mode .hero{padding:28px 32px}
+  .operator-mode .category-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}

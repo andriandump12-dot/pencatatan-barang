@@ -291,7 +291,7 @@ async function saveEntry(event){
   if(cat.mode==='flow'){saldo_awal=num('opening');pemasukan=num('incoming');pemakaian=num('usage');saldo_akhir=saldo_awal+pemasukan-pemakaian;if(saldo_akhir<0){setMessage($('formMsg'),'Saldo akhir tidak boleh negatif.','error');return;}}
   else{saldo_awal=num('meterOpening');saldo_akhir=num('meterClosing');pemasukan=0;pemakaian=saldo_akhir-saldo_awal;if(pemakaian<0){setMessage($('formMsg'),'Saldo akhir tidak boleh lebih kecil dari saldo awal untuk meter.','error');return;}}
   setMessage($('formMsg'),'Menyimpan...');const email=currentUser?.email||'';const payload={tanggal,kategori,nama_item,saldo_awal,pemasukan,pemakaian,saldo_akhir,catatan};let result;if(id){result=await db.from('stock_entries').update({...payload,updated_by_email:email}).eq('id',id);}else{result=await db.from('stock_entries').insert({...payload,created_by_email:email,updated_by_email:email});}
-  if(result.error){setMessage($('formMsg'),`Gagal menyimpan: ${result.error.message}`,'error');return;}closeModal();await loadEntries();await notifyIfLow(kategori,nama_item,saldo_akhir);
+  if(result.error){setMessage($('formMsg'),`Gagal menyimpan: ${result.error.message}`,'error');return;}setMessage($('formMsg'),id?'Laporan berhasil diperbarui.':'Laporan berhasil diterima Admin.','success');await loadEntries();await notifyIfLow(kategori,nama_item,saldo_akhir);setTimeout(closeModal,450);
 }
 window.editEntry=id=>{const e=entries.find(x=>x.id===id);if(e)openModal(e);};
 window.deleteEntry=async id=>{const e=entries.find(x=>x.id===id);if(!e||!confirm(`Hapus pencatatan ${e.nama_item} tanggal ${e.tanggal}?`))return;const {error}=await db.from('stock_entries').delete().eq('id',id);if(error)return alert(`Gagal menghapus: ${error.message}`);await loadEntries();};
@@ -322,7 +322,7 @@ async function loadProfile(user){
   if(error){console.warn('Profile:',error.message);currentRole='operator';return;}
   if(!data){const r=await db.from('profiles').insert({id:user.id,role:'operator'}).select('role').single();data=r.data;}
   if(data?.aktif===false){await db.auth.signOut();setMessage($('authMsg'),'Akun dinonaktifkan oleh admin.','error');showAuth();return false;}
-  currentRole=data?.role==='admin'?'admin':'operator';$('settingsBtn').classList.toggle('hidden',currentRole!=='admin');$('roleBadge').textContent=currentRole.toUpperCase();return true;
+  currentRole=data?.role==='admin'?'admin':'operator';document.body.classList.toggle('operator-mode',currentRole==='operator');document.body.classList.toggle('admin-mode',currentRole==='admin');$('settingsBtn').classList.toggle('hidden',currentRole!=='admin');$('roleBadge').textContent=currentRole.toUpperCase();$('newEntryBtn').innerHTML=currentRole==='operator'?'<span class="plus">+</span> Buat Laporan':'<span class="plus">+</span> Input Pencatatan';return true;
 }
 function subscribeRealtime(){if(realtimeChannel)db.removeChannel(realtimeChannel);realtimeChannel=db.channel('stocklog-live').on('postgres_changes',{event:'*',schema:'public',table:'stock_entries'},async payload=>{await loadEntries();if(payload.eventType==='INSERT'||payload.eventType==='UPDATE')await notifyIfLow(payload.new.kategori,payload.new.nama_item,payload.new.saldo_akhir);}).on('postgres_changes',{event:'*',schema:'public',table:'stock_limits'},loadLimits).on('postgres_changes',{event:'*',schema:'public',table:'stock_activity_logs'},loadActivities).subscribe();}
 
