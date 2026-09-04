@@ -384,3 +384,9 @@ body[data-page="settings"] .page-section:not(.page-settings) { display:none!impo
 .connection-banner{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:100;width:min(620px,calc(100% - 24px));padding:11px 14px;border-radius:14px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;box-shadow:0 12px 30px rgba(15,23,42,.14);font-size:12px;font-weight:700;text-align:center}
 button:disabled{opacity:.65;cursor:wait;transform:none!important}
 @media(max-width:700px){.connection-banner{top:8px;font-size:11px}.connection-banner:not(.hidden){top:8px}}
+
+.notification-item{position:relative;padding-right:44px;}
+.notification-item.is-read{opacity:.72;}
+.notification-delete{position:absolute;right:12px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;font-size:16px;opacity:.7;}
+.notification-delete:hover{opacity:1;}
+.notification-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
