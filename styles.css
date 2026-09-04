@@ -313,3 +313,31 @@ input,select,textarea{border-radius:13px;border-color:#e0e7ef;background:#fbfcfe
 }
 @media(max-width:380px){.nav-item b{font-size:8px}.nav-item span{font-size:17px}.container{padding-inline:9px}.category-card{min-height:108px}.hero{padding:18px 15px}}
 @media(prefers-reduced-motion:no-preference){.nav-item,.category-card,.stat,.panel,.stock-card,.hero{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease}.nav-item:hover{transform:translateY(-1px)}}
+
+/* V15 PWA install prompt */
+.install-banner{position:fixed;z-index:80;left:50%;bottom:18px;transform:translateX(-50%);width:min(680px,calc(100% - 28px));display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(11,18,32,.94);backdrop-filter:blur(18px);box-shadow:0 18px 50px rgba(0,0,0,.3);color:#fff}
+.install-banner strong{display:block;font-size:14px}.install-banner span{display:block;margin-top:3px;font-size:12px;opacity:.72}.install-actions{display:flex;gap:8px;flex:none}.install-banner .small{min-height:38px;padding:0 13px}
+@media(max-width:640px){.install-banner{align-items:flex-start;bottom:12px}.install-actions{flex-direction:column}.install-banner .small{min-height:36px}}
+
+/* V15.1 — Fix login autofill/input visibility on dark auth screen */
+.auth-card input,
+.auth-card input:focus,
+.auth-card input:active,
+.auth-card input:hover{
+  background:#0b1220 !important;
+  color:#ffffff !important;
+  -webkit-text-fill-color:#ffffff !important;
+  caret-color:#ffffff !important;
+}
+.auth-card input::placeholder{color:#64748b !important;opacity:1}
+.auth-card input:-webkit-autofill,
+.auth-card input:-webkit-autofill:hover,
+.auth-card input:-webkit-autofill:focus,
+.auth-card input:-webkit-autofill:active{
+  -webkit-text-fill-color:#ffffff !important;
+  caret-color:#ffffff !important;
+  -webkit-box-shadow:0 0 0 1000px #0b1220 inset !important;
+  box-shadow:0 0 0 1000px #0b1220 inset !important;
+  border-color:#263244 !important;
+  transition:background-color 9999s ease-in-out 0s;
+}
