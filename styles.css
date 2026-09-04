@@ -378,3 +378,9 @@ body[data-page="settings"] .page-section:not(.page-settings) { display:none!impo
   .entry-page .modal-head,.settings-page .modal-head{position:static;background:transparent;padding:0;margin-bottom:12px;}
   .entry-page .modal-actions,.settings-page .modal-actions{display:grid;grid-template-columns:1fr 1.35fr;gap:8px;margin-top:14px;padding:0;background:transparent;border:0;}
 }
+
+
+/* V19 — final hardening */
+.connection-banner{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:100;width:min(620px,calc(100% - 24px));padding:11px 14px;border-radius:14px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;box-shadow:0 12px 30px rgba(15,23,42,.14);font-size:12px;font-weight:700;text-align:center}
+button:disabled{opacity:.65;cursor:wait;transform:none!important}
+@media(max-width:700px){.connection-banner{top:8px;font-size:11px}.connection-banner:not(.hidden){top:8px}}

@@ -33,6 +33,8 @@
     </div>
   </div>
 
+  <div id="connectionBanner" class="connection-banner hidden" role="status" aria-live="polite">⚠️ Koneksi internet terputus. Data belum terkirim sampai koneksi kembali.</div>
+
   <div id="installBanner" class="install-banner hidden"><div><strong>Install StockLog</strong><span>Pasang ke layar utama supaya aksesnya seperti aplikasi.</span></div><div class="install-actions"><button id="installBtn" class="primary small">Install</button><button id="dismissInstall" class="ghost small">Nanti</button></div></div>
 
   <div id="appView" class="hidden app-shell">
@@ -147,7 +149,7 @@
         <div class="grid2"><label>Kategori<select id="settingCategory"></select></label><label>Nama item<input id="settingItem" required placeholder="Contoh: PAC"></label></div>
         <div class="grid2"><label>Batas minimum<input id="settingMinimum" type="number" step="any" min="0" required value="0"></label><label>Satuan<input id="settingUnit" placeholder="kg / Nm³ / m³"></label></div>
         <div id="settingsMsg" class="message"></div>
-        <div class="modal-actions"><button type="button" id="cancelSettings" class="ghost">Batal</button><button type="submit" class="primary">Simpan Batas</button></div>
+        <div class="modal-actions"><button type="button" id="cancelSettings" class="ghost">Batal</button><button type="submit" class="primary" id="saveLimitBtn">Simpan Batas</button></div>
       </form>
       <div class="settings-table-wrap"><table><thead><tr><th>Kategori</th><th>Item</th><th>Minimum</th><th>Aksi</th></tr></thead><tbody id="settingsBody"></tbody></table></div>
       <div class="settings-users-head"><div><span class="eyebrow">USER MANAGEMENT V10</span><h3>Kelola Operator</h3><p class="muted">Aktif/nonaktifkan akses aplikasi dan ubah role. Password tetap dikelola lewat Supabase Auth.</p></div><span class="badge" id="profileCount">0 user</span></div>
@@ -173,7 +175,7 @@
         </div>
         <label>Catatan<textarea id="notes" rows="3" placeholder="Opsional"></textarea></label>
         <div id="formMsg" class="message"></div>
-        <div class="modal-actions"><button type="button" id="cancelBtn" class="ghost">Batal</button><button type="submit" class="primary">Simpan Data</button></div>
+        <div class="modal-actions"><button type="button" id="cancelBtn" class="ghost">Batal</button><button type="submit" class="primary" id="saveEntryBtn">Simpan Data</button></div>
       </form>
     </div>
   </section>

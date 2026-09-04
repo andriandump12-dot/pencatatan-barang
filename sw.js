@@ -1,4 +1,4 @@
-const CACHE = 'stocklog-v15-shell';
+const CACHE = 'stocklog-v19-shell';
 const APP_SHELL = [
   './', './index.html', './styles.css', './app.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png'
@@ -18,13 +18,22 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== location.origin) return;
 
-  event.respondWith(
-    caches.match(request).then(cached => cached || fetch(request).then(response => {
-      if (response.ok && (request.destination === 'script' || request.destination === 'style' || request.destination === 'document' || request.destination === 'image' || request.destination === 'manifest')) {
-        const copy = response.clone();
-        caches.open(CACHE).then(cache => cache.put(request, copy));
+  event.respondWith((async () => {
+    if (request.destination === 'document') {
+      try {
+        const response = await fetch(request);
+        if (response.ok) { const copy=response.clone(); caches.open(CACHE).then(cache=>cache.put(request,copy)); }
+        return response;
+      } catch (_) { return caches.match(request).then(c=>c||caches.match('./index.html')); }
+    }
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    try {
+      const response = await fetch(request);
+      if (response.ok && (request.destination === 'script' || request.destination === 'style' || request.destination === 'image' || request.destination === 'manifest')) {
+        const copy=response.clone(); caches.open(CACHE).then(cache=>cache.put(request,copy));
       }
       return response;
-    }).catch(() => caches.match('./index.html')))
-  );
+    } catch (_) { return caches.match('./index.html'); }
+  })());
 });
