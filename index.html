@@ -36,30 +36,42 @@
       </div>
     </header>
 
+    <nav id="appNav" class="app-nav" aria-label="Navigasi StockLog">
+      <div class="app-nav-inner">
+        <button class="nav-item active" data-page="home"><span>🏠</span><b>Beranda</b></button>
+        <button class="nav-item" data-page="input"><span>📝</span><b>Buat Laporan</b></button>
+        <button class="nav-item" data-page="history"><span>📋</span><b>Riwayat</b></button>
+        <button class="nav-item admin-nav" data-page="stock"><span>📦</span><b>Stok</b></button>
+        <button class="nav-item admin-nav" data-page="report"><span>📊</span><b>Rekap</b></button>
+        <button class="nav-item admin-nav" data-page="notifications"><span>🔔</span><b>Notifikasi</b><em id="navNotificationBadge">0</em></button>
+        <button class="nav-item admin-nav" data-page="settings"><span>⚙️</span><b>Pengaturan</b></button>
+      </div>
+    </nav>
+
     <main class="container">
-      <section class="hero">
+      <section class="hero page-section page-home">
         <div><span class="eyebrow">STOCKLOG</span><h1>Halo, siap buat laporan?</h1><p class="operator-copy">Catat kondisi barang di lapangan. Setelah disimpan, laporan langsung tersimpan dan dapat dilihat Admin.</p><p class="admin-copy">Monitor saldo, pemakaian, histori pencatatan, dan laporan operator secara realtime.</p></div>
         <button id="newEntryBtn" class="primary add-btn"><span class="plus">+</span> Input Pencatatan</button>
       </section>
 
-      <section class="panel notification-panel hidden" id="notificationPanel">
+      <section class="panel notification-panel hidden page-section page-notifications" id="notificationPanel">
         <div class="panel-head"><div><span class="eyebrow">ADMIN NOTIFICATIONS V8</span><h2>Pusat Notifikasi</h2><p class="muted">Alert stok, aktivitas operator, dan kondisi item terbaru.</p></div><div class="notification-actions"><button id="markNotificationsRead" class="ghost small">Tandai dibaca</button><span class="badge" id="notificationSummary">0 notifikasi</span></div></div>
         <div id="notificationList" class="notification-list"></div>
         <div id="notificationEmpty" class="empty hidden"><div class="empty-icon">🔔</div><strong>Belum ada notifikasi</strong><span>Notifikasi stok dan aktivitas akan muncul di sini.</span></div>
       </section>
 
-      <section class="alert-panel hidden" id="alertPanel">
+      <section class="alert-panel hidden page-section page-home page-stock" id="alertPanel">
         <div class="alert-head"><div><span class="eyebrow">STOCK ALERT V7</span><h2>Stok perlu diperhatikan</h2><p class="muted">Batas minimum dan estimasi stok habis dihitung otomatis.</p></div><span class="alert-count" id="alertCount">0</span></div>
         <div id="alertList" class="alert-list"></div><div id="predictionList" class="prediction-list"></div>
       </section>
 
-      <section class="stats-grid">
+      <section class="stats-grid page-section page-home">
         <div class="stat stat-main"><div class="stat-icon">◷</div><div><span>Hari ini</span><strong id="todayCount">0</strong><small>pencatatan</small></div></div>
         <div class="stat"><div class="stat-icon blue">▦</div><div><span>Kategori aktif</span><strong id="categoryCount">0</strong><small>dari 7 kategori</small></div></div>
         <div class="stat"><div class="stat-icon green">✓</div><div><span>Total pencatatan</span><strong id="entryCount">0</strong><small>tersimpan online</small></div></div>
       </section>
 
-      <section class="dashboard-section" id="dashboardSection">
+      <section class="dashboard-section page-section page-home page-stock" id="dashboardSection">
         <div class="section-title"><div><span class="eyebrow">STOCK OVERVIEW</span><h2>Ringkasan stok</h2></div><span class="badge" id="dashboardUpdated">Realtime</span></div>
         <div class="stock-grid" id="stockGrid"></div>
         <div class="dashboard-cols">
@@ -68,12 +80,12 @@
         </div>
       </section>
 
-      <section class="prediction-section" id="predictionSection">
+      <section class="prediction-section page-section page-stock" id="predictionSection">
         <div class="section-title"><div><span class="eyebrow">PREDICTION V7</span><h2>Prediksi stok habis</h2><p class="muted">Estimasi memakai rata-rata pemakaian 30 hari terakhir. Hanya berlaku untuk stok bahan (FLOW).</p></div><span class="badge" id="predictionCount">0 perlu perhatian</span></div>
         <div id="predictionGrid" class="prediction-grid"></div>
       </section>
 
-      <section class="report-section" id="reportSection">
+      <section class="report-section page-section page-report" id="reportSection">
         <div class="section-title"><div><span class="eyebrow">REPORT V6</span><h2>Rekap bulanan & tahunan</h2><p class="muted">Ringkasan saldo, pemasukan, pemakaian, dan saldo akhir berdasarkan periode.</p></div><span class="badge" id="reportTotal">0 baris</span></div>
         <div class="report-toolbar">
           <label>Tahun<select id="reportYear"></select></label>
@@ -87,12 +99,12 @@
         <div id="reportEmpty" class="empty hidden"><div class="empty-icon">▤</div><strong>Tidak ada data periode ini</strong><span>Coba ubah tahun, bulan, kategori, atau item.</span></div>
       </section>
 
-      <section class="category-section">
+      <section class="category-section page-section page-home">
         <div class="section-title"><div><span class="eyebrow">QUICK ACCESS</span><h2>Mulai laporan</h2><p class="muted operator-copy">Pilih jenis barang yang mau dilaporkan.</p></div></div>
         <div class="category-grid" id="categoryCards"></div>
       </section>
 
-      <section class="panel history-panel hidden" id="activityPanel">
+      <section class="panel history-panel hidden page-section page-history" id="activityPanel">
         <div class="panel-head">
           <div><span class="eyebrow">ADMIN ACTIVITY</span><h2>Aktivitas Operator</h2><p class="muted">Riwayat input, perubahan, dan penghapusan data secara realtime.</p></div>
           <span class="badge" id="activityCount">0 aktivitas</span>
@@ -101,7 +113,7 @@
         <div id="activityEmpty" class="empty hidden"><div class="empty-icon">◷</div><strong>Belum ada aktivitas</strong><span>Aktivitas operator akan muncul di sini.</span></div>
       </section>
 
-      <section class="panel history-panel">
+      <section class="panel history-panel page-section page-history" id="historySection">
         <div class="panel-head">
           <div><span class="eyebrow">HISTORY</span><h2>Riwayat pencatatan</h2><p class="muted">Pilih kategori atau tanggal untuk menyaring data.</p></div>
           <div class="filters"><select id="categoryFilter"></select><input id="dateFilter" type="date"></div>

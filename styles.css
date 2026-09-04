@@ -128,3 +128,123 @@ input,select,textarea{transition:border-color .18s ease,box-shadow .18s ease,tra
 
 /* Gentle entrance without layout movement */
 @media(prefers-reduced-motion:no-preference){.hero,.stat,.category-card,.panel{animation:fadeUp .28s ease both}.category-card:nth-child(2){animation-delay:.03s}.category-card:nth-child(3){animation-delay:.06s}.category-card:nth-child(4){animation-delay:.09s}@keyframes fadeUp{from{opacity:.0;transform:translateY(5px)}to{opacity:1;transform:none}}}
+
+
+/* V13 — grouped navigation */
+.app-nav{
+  position:sticky;
+  top:0;
+  z-index:80;
+  padding:10px 18px;
+  background:rgba(7,12,24,.86);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(18px);
+}
+.app-nav-inner{
+  max-width:1180px;
+  margin:0 auto;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.app-nav-inner::-webkit-scrollbar{display:none}
+.nav-item{
+  position:relative;
+  flex:1 1 0;
+  min-width:105px;
+  min-height:52px;
+  border:1px solid transparent;
+  border-radius:15px;
+  background:transparent;
+  color:rgba(255,255,255,.68);
+  padding:8px 12px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  font:inherit;
+  transition:.2s ease;
+}
+.nav-item span{font-size:19px;line-height:1}
+.nav-item b{font-size:12px;white-space:nowrap}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item.active{
+  background:rgba(90,105,255,.16);
+  border-color:rgba(120,130,255,.25);
+  color:#fff;
+  box-shadow:0 8px 24px rgba(0,0,0,.14);
+}
+.nav-item em{
+  position:absolute;
+  top:4px;
+  right:10px;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:999px;
+  background:#ef4444;
+  color:#fff;
+  font-size:10px;
+  font-style:normal;
+  line-height:18px;
+  text-align:center;
+}
+.nav-item.hidden{display:none}
+.page-off{display:none!important}
+#notificationPanel.page-off{display:none!important}
+body[data-page="input"] .page-section,
+body[data-page="settings"] .page-section{display:none!important}
+body[data-page="notifications"] #notificationPanel{display:block}
+body[data-page="notifications"] .page-section:not(.page-notifications){display:none!important}
+body[data-page="report"] .page-section:not(.page-report){display:none!important}
+body[data-page="stock"] .page-section.page-home{display:none!important}
+body[data-page="history"] .page-section:not(.page-history){display:none!important}
+
+/* Keep the report/history/stok pages compact instead of one giant feed. */
+body[data-page="report"] .container,
+body[data-page="history"] .container,
+body[data-page="stock"] .container{padding-top:22px}
+body[data-page="history"] #historySection{display:block!important}
+body[data-page="stock"] #alertPanel.hidden{display:none!important}
+
+/* Operator gets a very simple home screen. */
+.operator-mode .page-home .dashboard-cols{display:none}
+.operator-mode .page-home #dashboardSection{margin-top:0}
+.operator-mode .page-home .stats-grid{margin-top:0}
+.operator-mode .category-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+/* Mobile: bottom-style compact navigation without forcing horizontal page scrolling. */
+@media (max-width:700px){
+  .app-nav{
+    position:fixed;
+    left:0;right:0;bottom:0;top:auto;
+    padding:7px 8px calc(7px + env(safe-area-inset-bottom));
+    border-top:1px solid rgba(255,255,255,.09);
+    border-bottom:0;
+    background:rgba(7,12,24,.94);
+  }
+  .app-nav-inner{gap:4px}
+  .nav-item{
+    min-width:0;
+    min-height:54px;
+    padding:6px 5px;
+    border-radius:12px;
+    flex:1 1 0;
+    flex-direction:column;
+    gap:3px;
+  }
+  .nav-item span{font-size:18px}
+  .nav-item b{font-size:9px}
+  .nav-item em{top:2px;right:4px}
+  .container{padding-bottom:92px}
+  body[data-page="history"] .container,
+  body[data-page="report"] .container,
+  body[data-page="stock"] .container{padding-bottom:100px}
+}
+@media (min-width:701px){
+  .app-nav-inner{justify-content:flex-start}
+  .nav-item{flex:0 1 auto}
+}

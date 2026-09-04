@@ -22,10 +22,47 @@ function fmt(v){ return new Intl.NumberFormat('id-ID',{maximumFractionDigits:3})
 function getCategory(name){ return CATEGORIES.find(c=>c.name===name)||CATEGORIES[0]; }
 function setMessage(el,text='',type=''){ el.textContent=text; el.className=`message ${type}`.trim(); }
 
+function setPage(page='home'){
+  const allowedAdmin=['stock','report','notifications','settings'];
+  if(allowedAdmin.includes(page) && currentRole!=='admin') page='home';
+  document.querySelectorAll('.nav-item').forEach(btn=>btn.classList.toggle('active',btn.dataset.page===page));
+  document.body.dataset.page=page;
+  document.querySelectorAll('.page-section').forEach(el=>{
+    const classes=[...el.classList];
+    const show=classes.includes(`page-${page}`);
+    el.classList.toggle('page-off',!show);
+  });
+  const navBadge=$('navNotificationBadge');
+  if(navBadge && $('notificationBadge')) navBadge.textContent=$('notificationBadge').textContent||'0';
+  if(page==='history') renderEntries();
+  if(page==='stock'){renderDashboard();renderAlerts();}
+  if(page==='report') renderReport();
+  if(page==='notifications') { $('notificationPanel')?.classList.remove('hidden'); renderNotifications(); }
+}
+function setupNavigation(){
+  document.querySelectorAll('.nav-item').forEach(btn=>btn.addEventListener('click',()=>{
+    const page=btn.dataset.page;
+    if(page==='input'){ setPage('input'); openModal(); return; }
+    if(page==='settings'){ openSettings(); return; }
+    setPage(page);
+  }));
+  setPage('home');
+}
 function renderCategoryCards(){
   const icons=['▣','⚗','⚗','⚗','◉','◉','≈'];
   $('categoryCards').innerHTML=CATEGORIES.map((c,i)=>`<button class="category-card" data-category="${c.name}"><div class="cat-icon">${icons[i]}</div><div class="cat-name">${c.name}</div><div class="cat-type">${c.mode==='flow'?'Stok bahan':'Meter 24 jam'}</div></button>`).join('');
-  document.querySelectorAll('.category-card').forEach(btn=>btn.addEventListener('click',()=>{$('categoryFilter').value=btn.dataset.category;renderEntries();document.querySelector('.history-panel').scrollIntoView({behavior:'smooth',block:'start'});}));
+  document.querySelectorAll('.category-card').forEach(btn=>btn.addEventListener('click',()=>{
+    if(currentRole==='operator'){
+      setPage('input');
+      openModal();
+      $('entryCategory').value=btn.dataset.category;
+      updateModeUI();
+    } else {
+      $('categoryFilter').value=btn.dataset.category;
+      setPage('history');
+      renderEntries();
+    }
+  }));
 }
 function fillCategorySelects(){
   $('entryCategory').innerHTML=CATEGORIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
@@ -164,6 +201,7 @@ function renderNotifications(){
   btn.classList.remove('hidden');
   const items=notificationItems(); const unread=notificationsReadAt?items.filter(x=>new Date(x.time||0)>new Date(notificationsReadAt)).length:items.length;
   $('notificationBadge').textContent=unread>99?'99+':unread;
+  if($('navNotificationBadge')) $('navNotificationBadge').textContent=$('notificationBadge').textContent;
   $('notificationSummary').textContent=`${items.length} notifikasi`;
   $('notificationList').innerHTML=items.map(x=>`<div class="notification-item ${x.kind}"><div class="notification-icon">${x.kind==='critical'?'⚠️':x.kind==='danger'?'🗑️':x.kind==='update'?'✏️':'📝'}</div><div class="notification-copy"><strong>${esc(x.title)}</strong><span>${esc(x.meta)}</span><small>${formatDateTime(x.time)}</small></div></div>`).join('');
   $('notificationEmpty').classList.toggle('hidden',items.length>0);
@@ -322,7 +360,9 @@ async function loadProfile(user){
   if(error){console.warn('Profile:',error.message);currentRole='operator';return;}
   if(!data){const r=await db.from('profiles').insert({id:user.id,role:'operator'}).select('role').single();data=r.data;}
   if(data?.aktif===false){await db.auth.signOut();setMessage($('authMsg'),'Akun dinonaktifkan oleh admin.','error');showAuth();return false;}
-  currentRole=data?.role==='admin'?'admin':'operator';document.body.classList.toggle('operator-mode',currentRole==='operator');document.body.classList.toggle('admin-mode',currentRole==='admin');$('settingsBtn').classList.toggle('hidden',currentRole!=='admin');$('roleBadge').textContent=currentRole.toUpperCase();$('newEntryBtn').innerHTML=currentRole==='operator'?'<span class="plus">+</span> Buat Laporan':'<span class="plus">+</span> Input Pencatatan';return true;
+  currentRole=data?.role==='admin'?'admin':'operator';document.body.classList.toggle('operator-mode',currentRole==='operator');document.body.classList.toggle('admin-mode',currentRole==='admin');$('settingsBtn').classList.toggle('hidden',currentRole!=='admin');
+  document.querySelectorAll('.admin-nav').forEach(el=>el.classList.toggle('hidden',currentRole!=='admin'));
+  $('roleBadge').textContent=currentRole.toUpperCase();$('newEntryBtn').innerHTML=currentRole==='operator'?'<span class="plus">+</span> Buat Laporan':'<span class="plus">+</span> Input Pencatatan';return true;
 }
 function subscribeRealtime(){if(realtimeChannel)db.removeChannel(realtimeChannel);realtimeChannel=db.channel('stocklog-live').on('postgres_changes',{event:'*',schema:'public',table:'stock_entries'},async payload=>{await loadEntries();if(payload.eventType==='INSERT'||payload.eventType==='UPDATE')await notifyIfLow(payload.new.kategori,payload.new.nama_item,payload.new.saldo_akhir);}).on('postgres_changes',{event:'*',schema:'public',table:'stock_limits'},loadLimits).on('postgres_changes',{event:'*',schema:'public',table:'stock_activity_logs'},loadActivities).subscribe();}
 
@@ -333,7 +373,7 @@ function showAuth(){$('appView').classList.add('hidden');$('authView').classList
 $('loginTab').addEventListener('click',()=>{authMode='login';$('loginTab').classList.add('active');$('signupTab').classList.remove('active');$('authSubmit').textContent='Login';setMessage($('authMsg'));});
 $('signupTab').addEventListener('click',()=>{authMode='signup';$('signupTab').classList.add('active');$('loginTab').classList.remove('active');$('authSubmit').textContent='Daftar';setMessage($('authMsg'));});
 $('authForm').addEventListener('submit',handleAuth);$('notificationBtn').addEventListener('click',()=>{const p=$('notificationPanel');p.classList.toggle('hidden');p.dataset.open=p.classList.contains('hidden')?'':'1';});$('markNotificationsRead').addEventListener('click',()=>{notificationsReadAt=new Date().toISOString();localStorage.setItem('stocklog_notifications_read_at',notificationsReadAt);renderNotifications();});$('reportYear').addEventListener('change',renderReport);$('reportMonth').addEventListener('change',renderReport);$('reportCategory').addEventListener('change',()=>{updateReportItems();renderReport();});$('reportItem').addEventListener('change',renderReport);$('exportCsvBtn').addEventListener('click',exportReportCsv);$('printReportBtn').addEventListener('click',printReport);$('logoutBtn').addEventListener('click',async()=>{if(realtimeChannel)db.removeChannel(realtimeChannel);await db.auth.signOut();showAuth();});$('newEntryBtn').addEventListener('click',()=>openModal());$('closeModal').addEventListener('click',closeModal);$('cancelBtn').addEventListener('click',closeModal);$('entryForm').addEventListener('submit',saveEntry);$('entryCategory').addEventListener('change',updateModeUI);$('categoryFilter').addEventListener('change',renderEntries);$('dateFilter').addEventListener('change',renderEntries);['opening','incoming','usage','meterOpening','meterClosing'].forEach(id=>$(id).addEventListener('input',updatePreview));$('entryItem').addEventListener('blur',syncOpeningBalance);$('entryDate').addEventListener('change',syncOpeningBalance);$('entryCategory').addEventListener('change',syncOpeningBalance);$('settingsBtn').addEventListener('click',openSettings);$('closeSettings').addEventListener('click',closeSettings);$('cancelSettings').addEventListener('click',closeSettings);$('settingsForm').addEventListener('submit',saveLimit);$('notifyBtn').addEventListener('click',enableNotifications);
-fillCategorySelects();renderCategoryCards();$('entryDate').value=today();
+fillCategorySelects();renderCategoryCards();setupNavigation();$('entryDate').value=today();
 
 db.auth.getSession().then(({data})=>{if(data.session)showApp(data.session);});
 db.auth.onAuthStateChange((_event,session)=>{if(session)showApp(session);else showAuth();});
