@@ -14,7 +14,7 @@ const CATEGORIES = [
 ];
 
 const $ = id => document.getElementById(id);
-let authMode = 'login', entries = [], limits = [], activities = [], currentRole = 'operator', realtimeChannel = null, currentUser = null, notificationsReadAt = localStorage.getItem('stocklog_notifications_read_at') || '';
+let authMode = 'login', entries = [], limits = [], activities = [], profiles = [], currentRole = 'operator', realtimeChannel = null, currentUser = null, notificationsReadAt = localStorage.getItem('stocklog_notifications_read_at') || '';
 
 function today(){ return new Date().toISOString().slice(0,10); }
 function num(id){ const v=parseFloat($(id).value); return Number.isFinite(v)?v:0; }
@@ -54,10 +54,38 @@ async function syncOpeningBalance(){
   try{const previous=await getPreviousBalance(category,item,date);if(previous!==null){if(getCategory(category).mode==='flow')$('opening').value=previous;else $('meterOpening').value=previous;updatePreview();}}catch(e){console.warn(e.message);}
 }
 
+async function loadProfiles(){
+  if(currentRole!=='admin'){profiles=[];return;}
+  const {data,error}=await db.from('profiles').select('id,nama,role,aktif,created_at').order('created_at',{ascending:true});
+  if(error){console.warn('Profiles:',error.message);profiles=[];return;}
+  profiles=data||[]; renderProfiles();
+}
+function renderProfiles(){
+  if(currentRole!=='admin'||!$('profilesBody'))return;
+  $('profileCount').textContent=`${profiles.length} user`;
+  $('profilesBody').innerHTML=profiles.length?profiles.map(p=>{
+    const isMe=p.id===currentUser?.id, active=p.aktif!==false;
+    return `<tr><td><strong>${esc(p.nama||'Belum diisi')}</strong><small class="table-sub">${esc(p.id)}</small></td><td><span class="actor">${esc(p.id.slice(0,8))}…</span></td><td><span class="badge">${String(p.role||'operator').toUpperCase()}</span></td><td><span class="status-pill ${active?'on':'off'}">${active?'AKTIF':'NONAKTIF'}</span></td><td>${isMe?'<span class="muted">Akun saya</span>':`<button class="small" onclick="toggleProfile('${p.id}',${active})">${active?'Nonaktifkan':'Aktifkan'}</button><button class="small" onclick="toggleRole('${p.id}','${p.role==='admin'?'operator':'admin'}')">Jadikan ${p.role==='admin'?'Operator':'Admin'}</button>`}</td></tr>`;
+  }).join(''):'<tr><td colspan="5">Belum ada user.</td></tr>';
+}
+window.toggleProfile=async(id,active)=>{
+  if(id===currentUser?.id)return alert('Akun admin yang sedang dipakai tidak bisa dinonaktifkan.');
+  const {error}=await db.from('profiles').update({aktif:!active}).eq('id',id);
+  if(error)return alert(`Gagal mengubah status: ${error.message}`);
+  await loadProfiles();
+};
+window.toggleRole=async(id,role)=>{
+  if(id===currentUser?.id)return alert('Role akun admin yang sedang dipakai tidak diubah dari sini.');
+  if(!confirm(`Ubah role user ini menjadi ${role.toUpperCase()}?`))return;
+  const {error}=await db.from('profiles').update({role}).eq('id',id);
+  if(error)return alert(`Gagal mengubah role: ${error.message}`);
+  await loadProfiles();
+};
+
 async function loadLimits(){
   const {data,error}=await db.from('stock_limits').select('*').order('kategori').order('nama_item');
   if(error){console.warn('Batas minimum:',error.message);limits=[];return;}
-  limits=data||[]; renderAlerts(); if(currentRole==='admin')renderSettings();
+  limits=data||[]; renderAlerts(); if(currentRole==='admin'){renderSettings();loadProfiles();}
 }
 async function loadEntries(){
   const {data,error}=await db.from('stock_entries').select('*').order('tanggal',{ascending:false}).order('created_at',{ascending:false});
@@ -286,19 +314,20 @@ async function renderSettings(){
 }
 async function saveLimit(e){e.preventDefault();const kategori=$('settingCategory').value,nama_item=$('settingItem').value.trim(),minimum=num('settingMinimum'),satuan=$('settingUnit').value.trim()||null;if(!nama_item)return;setMessage($('settingsMsg'),'Menyimpan...');const {error}=await db.from('stock_limits').upsert({kategori,nama_item,minimum,satuan,updated_by:(await db.auth.getUser()).data.user.id},{onConflict:'kategori,nama_item'});if(error){setMessage($('settingsMsg'),`Gagal: ${error.message}`,'error');return;}setMessage($('settingsMsg'),'Batas minimum tersimpan.','success');$('settingItem').value='';$('settingMinimum').value=0;$('settingUnit').value='';await loadLimits();}
 window.deleteLimit=async id=>{if(!confirm('Hapus batas minimum ini?'))return;const {error}=await db.from('stock_limits').delete().eq('id',id);if(error)return alert(error.message);await loadLimits();};
-function openSettings(){if(currentRole==='admin'){$('settingsModal').classList.remove('hidden');renderSettings();}}
+function openSettings(){if(currentRole==='admin'){$('settingsModal').classList.remove('hidden');document.body.classList.add('modal-open');renderSettings();loadProfiles();}}
 function closeSettings(){$('settingsModal').classList.add('hidden');document.body.classList.remove('modal-open');}
 
 async function loadProfile(user){
-  let {data,error}=await db.from('profiles').select('role').eq('id',user.id).maybeSingle();
+  let {data,error}=await db.from('profiles').select('role,aktif,nama').eq('id',user.id).maybeSingle();
   if(error){console.warn('Profile:',error.message);currentRole='operator';return;}
   if(!data){const r=await db.from('profiles').insert({id:user.id,role:'operator'}).select('role').single();data=r.data;}
-  currentRole=data?.role==='admin'?'admin':'operator';$('settingsBtn').classList.toggle('hidden',currentRole!=='admin');$('roleBadge').textContent=currentRole.toUpperCase();
+  if(data?.aktif===false){await db.auth.signOut();setMessage($('authMsg'),'Akun dinonaktifkan oleh admin.','error');showAuth();return false;}
+  currentRole=data?.role==='admin'?'admin':'operator';$('settingsBtn').classList.toggle('hidden',currentRole!=='admin');$('roleBadge').textContent=currentRole.toUpperCase();return true;
 }
 function subscribeRealtime(){if(realtimeChannel)db.removeChannel(realtimeChannel);realtimeChannel=db.channel('stocklog-live').on('postgres_changes',{event:'*',schema:'public',table:'stock_entries'},async payload=>{await loadEntries();if(payload.eventType==='INSERT'||payload.eventType==='UPDATE')await notifyIfLow(payload.new.kategori,payload.new.nama_item,payload.new.saldo_akhir);}).on('postgres_changes',{event:'*',schema:'public',table:'stock_limits'},loadLimits).on('postgres_changes',{event:'*',schema:'public',table:'stock_activity_logs'},loadActivities).subscribe();}
 
 async function handleAuth(event){event.preventDefault();const email=$('email').value.trim(),password=$('password').value;setMessage($('authMsg'),authMode==='login'?'Memproses login...':'Membuat akun...');const result=authMode==='login'?await db.auth.signInWithPassword({email,password}):await db.auth.signUp({email,password});if(result.error){setMessage($('authMsg'),result.error.message,'error');return;}if(authMode==='signup'&&!result.data.session){setMessage($('authMsg'),'Akun berhasil dibuat. Silakan login.','success');authMode='login';$('authSubmit').textContent='Login';return;}showApp(result.data.session);}
-async function showApp(session){if(!session)return;currentUser=session.user;$('authView').classList.add('hidden');$('appView').classList.remove('hidden');$('userEmail').textContent=session.user.email||'';if('Notification'in window&&Notification.permission==='granted'){ $('notifyBtn').textContent='🔔 Notifikasi Aktif'; $('notifyBtn').classList.add('active'); }await loadProfile(session.user);await loadLimits();await loadEntries();if(currentRole==='admin')await loadActivities();subscribeRealtime();}
+async function showApp(session){if(!session)return;currentUser=session.user;$('authView').classList.add('hidden');$('appView').classList.remove('hidden');$('userEmail').textContent=session.user.email||'';if('Notification'in window&&Notification.permission==='granted'){ $('notifyBtn').textContent='🔔 Notifikasi Aktif'; $('notifyBtn').classList.add('active'); }const profileOk=await loadProfile(session.user);if(!profileOk)return;await loadLimits();await loadEntries();if(currentRole==='admin'){await loadActivities();await loadProfiles();}subscribeRealtime();}
 function showAuth(){$('appView').classList.add('hidden');$('authView').classList.remove('hidden');}
 
 $('loginTab').addEventListener('click',()=>{authMode='login';$('loginTab').classList.add('active');$('signupTab').classList.remove('active');$('authSubmit').textContent='Login';setMessage($('authMsg'));});
