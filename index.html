@@ -9,6 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -27,6 +32,8 @@
       <p class="tiny">Data tersimpan online dan dipisahkan berdasarkan akun.</p>
     </div>
   </div>
+
+  <div id="installBanner" class="install-banner hidden"><div><strong>Install StockLog</strong><span>Pasang ke layar utama supaya aksesnya seperti aplikasi.</span></div><div class="install-actions"><button id="installBtn" class="primary small">Install</button><button id="dismissInstall" class="ghost small">Nanti</button></div></div>
 
   <div id="appView" class="hidden app-shell">
     <header class="topbar">
@@ -145,7 +152,7 @@
       <form id="entryForm">
         <input id="entryId" type="hidden">
         <div class="grid2"><label>Tanggal<input id="entryDate" type="date" required></label><label>Kategori<select id="entryCategory" required></select></label></div>
-        <label>Nama item<input id="entryItem" type="text" required placeholder="Contoh: Garam, PAC, CNG"></label>
+        <label>Nama item (otomatis)<input id="entryItem" type="text" readonly required aria-readonly="true"><small id="entryItemDisplay" class="field-help">Mengikuti kategori yang dipilih.</small></label>
         <div id="flowFields">
           <div class="grid3"><label>Saldo Awal<input id="opening" type="number" step="any" min="0" value="0"></label><label>Pemasukan<input id="incoming" type="number" step="any" min="0" value="0"></label><label>Pemakaian<input id="usage" type="number" step="any" min="0" value="0"></label></div>
           <div class="calculated"><span>Saldo Akhir otomatis</span><strong id="closingPreview">0</strong></div>
@@ -162,5 +169,10 @@
     </div>
   </div>
   <script src="app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+    }
+  </script>
 </body>
 </html>

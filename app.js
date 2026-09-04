@@ -85,10 +85,24 @@ async function getPreviousBalance(category,item,date,excludeId=''){
   if(excludeId) q=q.neq('id',excludeId);
   const {data,error}=await q; if(error) throw error; return data?.[0]?.saldo_akhir??null;
 }
+function syncItemFromCategory(){
+  const category=$('entryCategory').value;
+  const item=getCategory(category).name;
+  $('entryItem').value=item;
+  $('entryItemDisplay').textContent=item;
+}
+
 async function syncOpeningBalance(){
-  const id=$('entryId').value, category=$('entryCategory').value, item=$('entryItem').value.trim(), date=$('entryDate').value;
-  if(!category||!item||!date||id)return;
-  try{const previous=await getPreviousBalance(category,item,date);if(previous!==null){if(getCategory(category).mode==='flow')$('opening').value=previous;else $('meterOpening').value=previous;updatePreview();}}catch(e){console.warn(e.message);}
+  const id=$('entryId').value, category=$('entryCategory').value, date=$('entryDate').value;
+  syncItemFromCategory();
+  if(!category||!date||id)return;
+  try{
+    const item=getCategory(category).name;
+    const previous=await getPreviousBalance(category,item,date);
+    const target=getCategory(category).mode==='flow' ? $('opening') : $('meterOpening');
+    target.value=previous!==null ? previous : 0;
+    updatePreview();
+  }catch(e){console.warn(e.message);}
 }
 
 async function loadProfiles(){
@@ -320,11 +334,11 @@ function updateStats(){const t=today();$('todayCount').textContent=entries.filte
 
 function openModal(entry=null){
   document.body.classList.add('modal-open');
-  $('entryForm').reset();$('entryId').value=entry?.id||'';$('entryDate').value=entry?.tanggal||today();$('entryCategory').value=entry?.kategori||CATEGORIES[0].name;$('entryItem').value=entry?.nama_item||'';$('opening').value=entry?.saldo_awal??0;$('incoming').value=entry?.pemasukan??0;$('usage').value=entry?.pemakaian??0;$('meterOpening').value=entry?.saldo_awal??0;$('meterClosing').value=entry?.saldo_akhir??0;$('notes').value=entry?.catatan||'';$('modalTitle').textContent=entry?'Edit Pencatatan':'Input Pencatatan';$('formMsg').textContent='';updateModeUI();$('entryModal').classList.remove('hidden');
+  $('entryForm').reset();$('entryId').value=entry?.id||'';$('entryDate').value=entry?.tanggal||today();$('entryCategory').value=entry?.kategori||CATEGORIES[0].name;$('entryItem').value=entry?.nama_item||getCategory($('entryCategory').value).name;$('opening').value=entry?.saldo_awal??0;$('incoming').value=entry?.pemasukan??0;$('usage').value=entry?.pemakaian??0;$('meterOpening').value=entry?.saldo_awal??0;$('meterClosing').value=entry?.saldo_akhir??0;$('notes').value=entry?.catatan||'';$('modalTitle').textContent=entry?'Edit Pencatatan':'Input Pencatatan';$('formMsg').textContent='';syncItemFromCategory();updateModeUI();$('entryModal').classList.remove('hidden');if(!entry)syncOpeningBalance();
 }
 function closeModal(){$('entryModal').classList.add('hidden');document.body.classList.remove('modal-open');}
 async function saveEntry(event){
-  event.preventDefault();const id=$('entryId').value,kategori=$('entryCategory').value,cat=getCategory(kategori),nama_item=$('entryItem').value.trim(),tanggal=$('entryDate').value,catatan=$('notes').value.trim()||null;if(!nama_item||!tanggal)return;
+  event.preventDefault();const id=$('entryId').value,kategori=$('entryCategory').value,cat=getCategory(kategori),nama_item=cat.name,tanggal=$('entryDate').value,catatan=$('notes').value.trim()||null;$('entryItem').value=nama_item;if(!nama_item||!tanggal)return;
   let saldo_awal,pemasukan,pemakaian,saldo_akhir;
   if(cat.mode==='flow'){saldo_awal=num('opening');pemasukan=num('incoming');pemakaian=num('usage');saldo_akhir=saldo_awal+pemasukan-pemakaian;if(saldo_akhir<0){setMessage($('formMsg'),'Saldo akhir tidak boleh negatif.','error');return;}}
   else{saldo_awal=num('meterOpening');saldo_akhir=num('meterClosing');pemasukan=0;pemakaian=saldo_akhir-saldo_awal;if(pemakaian<0){setMessage($('formMsg'),'Saldo akhir tidak boleh lebih kecil dari saldo awal untuk meter.','error');return;}}
@@ -372,8 +386,41 @@ function showAuth(){$('appView').classList.add('hidden');$('authView').classList
 
 $('loginTab').addEventListener('click',()=>{authMode='login';$('loginTab').classList.add('active');$('signupTab').classList.remove('active');$('authSubmit').textContent='Login';setMessage($('authMsg'));});
 $('signupTab').addEventListener('click',()=>{authMode='signup';$('signupTab').classList.add('active');$('loginTab').classList.remove('active');$('authSubmit').textContent='Daftar';setMessage($('authMsg'));});
-$('authForm').addEventListener('submit',handleAuth);$('notificationBtn').addEventListener('click',()=>{const p=$('notificationPanel');p.classList.toggle('hidden');p.dataset.open=p.classList.contains('hidden')?'':'1';});$('markNotificationsRead').addEventListener('click',()=>{notificationsReadAt=new Date().toISOString();localStorage.setItem('stocklog_notifications_read_at',notificationsReadAt);renderNotifications();});$('reportYear').addEventListener('change',renderReport);$('reportMonth').addEventListener('change',renderReport);$('reportCategory').addEventListener('change',()=>{updateReportItems();renderReport();});$('reportItem').addEventListener('change',renderReport);$('exportCsvBtn').addEventListener('click',exportReportCsv);$('printReportBtn').addEventListener('click',printReport);$('logoutBtn').addEventListener('click',async()=>{if(realtimeChannel)db.removeChannel(realtimeChannel);await db.auth.signOut();showAuth();});$('newEntryBtn').addEventListener('click',()=>openModal());$('closeModal').addEventListener('click',closeModal);$('cancelBtn').addEventListener('click',closeModal);$('entryForm').addEventListener('submit',saveEntry);$('entryCategory').addEventListener('change',updateModeUI);$('categoryFilter').addEventListener('change',renderEntries);$('dateFilter').addEventListener('change',renderEntries);['opening','incoming','usage','meterOpening','meterClosing'].forEach(id=>$(id).addEventListener('input',updatePreview));$('entryItem').addEventListener('blur',syncOpeningBalance);$('entryDate').addEventListener('change',syncOpeningBalance);$('entryCategory').addEventListener('change',syncOpeningBalance);$('settingsBtn').addEventListener('click',openSettings);$('closeSettings').addEventListener('click',closeSettings);$('cancelSettings').addEventListener('click',closeSettings);$('settingsForm').addEventListener('submit',saveLimit);$('notifyBtn').addEventListener('click',enableNotifications);
+$('authForm').addEventListener('submit',handleAuth);$('notificationBtn').addEventListener('click',()=>{const p=$('notificationPanel');p.classList.toggle('hidden');p.dataset.open=p.classList.contains('hidden')?'':'1';});$('markNotificationsRead').addEventListener('click',()=>{notificationsReadAt=new Date().toISOString();localStorage.setItem('stocklog_notifications_read_at',notificationsReadAt);renderNotifications();});$('reportYear').addEventListener('change',renderReport);$('reportMonth').addEventListener('change',renderReport);$('reportCategory').addEventListener('change',()=>{updateReportItems();renderReport();});$('reportItem').addEventListener('change',renderReport);$('exportCsvBtn').addEventListener('click',exportReportCsv);$('printReportBtn').addEventListener('click',printReport);$('logoutBtn').addEventListener('click',async()=>{if(realtimeChannel)db.removeChannel(realtimeChannel);await db.auth.signOut();showAuth();});$('newEntryBtn').addEventListener('click',()=>openModal());$('closeModal').addEventListener('click',closeModal);$('cancelBtn').addEventListener('click',closeModal);$('entryForm').addEventListener('submit',saveEntry);$('entryCategory').addEventListener('change',()=>{syncItemFromCategory();updateModeUI();syncOpeningBalance();});$('categoryFilter').addEventListener('change',renderEntries);$('dateFilter').addEventListener('change',renderEntries);['opening','incoming','usage','meterOpening','meterClosing'].forEach(id=>$(id).addEventListener('input',updatePreview));$('entryDate').addEventListener('change',syncOpeningBalance);$('settingsBtn').addEventListener('click',openSettings);$('closeSettings').addEventListener('click',closeSettings);$('cancelSettings').addEventListener('click',closeSettings);$('settingsForm').addEventListener('submit',saveLimit);$('notifyBtn').addEventListener('click',enableNotifications);
 fillCategorySelects();renderCategoryCards();setupNavigation();$('entryDate').value=today();
 
 db.auth.getSession().then(({data})=>{if(data.session)showApp(data.session);});
 db.auth.onAuthStateChange((_event,session)=>{if(session)showApp(session);else showAuth();});
+
+/* V15: installable PWA */
+(() => {
+  let deferredPrompt = null;
+  const banner = document.getElementById('installBanner');
+  const installBtn = document.getElementById('installBtn');
+  const dismissBtn = document.getElementById('dismissInstall');
+  const dismissedKey = 'stocklog-install-dismissed-v15';
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredPrompt = event;
+    if (!localStorage.getItem(dismissedKey) && banner) banner.classList.remove('hidden');
+  });
+
+  installBtn?.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    banner?.classList.add('hidden');
+  });
+
+  dismissBtn?.addEventListener('click', () => {
+    localStorage.setItem(dismissedKey, '1');
+    banner?.classList.add('hidden');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    banner?.classList.add('hidden');
+  });
+})();
