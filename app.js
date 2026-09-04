@@ -253,9 +253,10 @@ function printReport(){
 function updateStats(){const t=today();$('todayCount').textContent=entries.filter(e=>e.tanggal===t).length;$('categoryCount').textContent=new Set(entries.map(e=>e.kategori)).size;$('entryCount').textContent=entries.length;}
 
 function openModal(entry=null){
+  document.body.classList.add('modal-open');
   $('entryForm').reset();$('entryId').value=entry?.id||'';$('entryDate').value=entry?.tanggal||today();$('entryCategory').value=entry?.kategori||CATEGORIES[0].name;$('entryItem').value=entry?.nama_item||'';$('opening').value=entry?.saldo_awal??0;$('incoming').value=entry?.pemasukan??0;$('usage').value=entry?.pemakaian??0;$('meterOpening').value=entry?.saldo_awal??0;$('meterClosing').value=entry?.saldo_akhir??0;$('notes').value=entry?.catatan||'';$('modalTitle').textContent=entry?'Edit Pencatatan':'Input Pencatatan';$('formMsg').textContent='';updateModeUI();$('entryModal').classList.remove('hidden');
 }
-function closeModal(){$('entryModal').classList.add('hidden');}
+function closeModal(){$('entryModal').classList.add('hidden');document.body.classList.remove('modal-open');}
 async function saveEntry(event){
   event.preventDefault();const id=$('entryId').value,kategori=$('entryCategory').value,cat=getCategory(kategori),nama_item=$('entryItem').value.trim(),tanggal=$('entryDate').value,catatan=$('notes').value.trim()||null;if(!nama_item||!tanggal)return;
   let saldo_awal,pemasukan,pemakaian,saldo_akhir;
@@ -286,7 +287,7 @@ async function renderSettings(){
 async function saveLimit(e){e.preventDefault();const kategori=$('settingCategory').value,nama_item=$('settingItem').value.trim(),minimum=num('settingMinimum'),satuan=$('settingUnit').value.trim()||null;if(!nama_item)return;setMessage($('settingsMsg'),'Menyimpan...');const {error}=await db.from('stock_limits').upsert({kategori,nama_item,minimum,satuan,updated_by:(await db.auth.getUser()).data.user.id},{onConflict:'kategori,nama_item'});if(error){setMessage($('settingsMsg'),`Gagal: ${error.message}`,'error');return;}setMessage($('settingsMsg'),'Batas minimum tersimpan.','success');$('settingItem').value='';$('settingMinimum').value=0;$('settingUnit').value='';await loadLimits();}
 window.deleteLimit=async id=>{if(!confirm('Hapus batas minimum ini?'))return;const {error}=await db.from('stock_limits').delete().eq('id',id);if(error)return alert(error.message);await loadLimits();};
 function openSettings(){if(currentRole==='admin'){$('settingsModal').classList.remove('hidden');renderSettings();}}
-function closeSettings(){$('settingsModal').classList.add('hidden');}
+function closeSettings(){$('settingsModal').classList.add('hidden');document.body.classList.remove('modal-open');}
 
 async function loadProfile(user){
   let {data,error}=await db.from('profiles').select('role').eq('id',user.id).maybeSingle();
