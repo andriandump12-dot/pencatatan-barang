@@ -49,7 +49,7 @@ function setupNavigation(){
   setPage('home');
 }
 function renderCategoryCards(){
-  const icons=['▣','⚗','⚗','⚗','◉','◉','≈'];
+  const icons=['🧂','🧪','🧴','🧪','🔥','♨️','💧'];
   $('categoryCards').innerHTML=CATEGORIES.map((c,i)=>`<button class="category-card" data-category="${c.name}"><div class="cat-icon">${icons[i]}</div><div class="cat-name">${c.name}</div><div class="cat-type">${c.mode==='flow'?'Stok bahan':'Meter 24 jam'}</div></button>`).join('');
   document.querySelectorAll('.category-card').forEach(btn=>btn.addEventListener('click',()=>{
     if(currentRole==='operator'){
