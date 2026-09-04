@@ -104,6 +104,17 @@
         <div class="report-summary" id="reportSummary"></div>
         <div class="table-wrap"><table><thead><tr><th>Bulan</th><th>Kategori</th><th>Item</th><th>Saldo Awal</th><th>Pemasukan</th><th>Pemakaian</th><th>Saldo Akhir</th><th>Mode</th></tr></thead><tbody id="reportBody"></tbody></table></div>
         <div id="reportEmpty" class="empty hidden"><div class="empty-icon">▤</div><strong>Tidak ada data periode ini</strong><span>Coba ubah tahun, bulan, kategori, atau item.</span></div>
+        <section id="meterReconciliation" class="meter-reconciliation hidden" aria-live="polite">
+          <div class="recon-head"><div><span class="eyebrow">REKONSILIASI METER</span><h3>Gas - CNG · Sinkron bulanan</h3><p class="muted" id="reconPeriod">Pilih tahun dan bulan untuk melihat hasil.</p></div><span id="reconStatus" class="recon-status">—</span></div>
+          <div class="recon-grid">
+            <div class="recon-card"><span>Saldo awal tanggal 1</span><strong id="reconOpening">0</strong></div>
+            <div class="recon-card"><span>Saldo akhir terakhir</span><strong id="reconClosing">0</strong></div>
+            <div class="recon-card"><span>Hasil periode</span><strong id="reconPeriodResult">0</strong><small>Saldo akhir − saldo awal</small></div>
+            <div class="recon-card"><span>Total pemakaian harian</span><strong id="reconDailyTotal">0</strong><small id="reconDays">0 hari tercatat</small></div>
+            <div class="recon-card recon-difference"><span>Selisih</span><strong id="reconDifference">0</strong><small>Hasil periode − total harian</small></div>
+          </div>
+          <div id="reconMessage" class="recon-message">Belum ada data CNG untuk periode ini.</div>
+        </section>
       </section>
 
       <section class="category-section page-section page-home">

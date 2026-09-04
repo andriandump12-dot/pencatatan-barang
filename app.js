@@ -315,6 +315,79 @@ function renderReport(){
   $('reportBody').innerHTML=rows.map(e=>{const c=getCategory(e.kategori);return `<tr><td>${esc(new Date(e.tanggal+'T00:00:00').toLocaleDateString('id-ID',{month:'long',year:'numeric'}))}</td><td>${esc(e.kategori)}</td><td><strong>${esc(e.nama_item)}</strong></td><td>${fmt(e.saldo_awal)}</td><td>${fmt(e.pemasukan)}</td><td>${fmt(e.pemakaian)}</td><td><strong>${fmt(e.saldo_akhir)}</strong></td><td><span class="badge">${c.mode==='flow'?'FLOW':'METER'}</span></td></tr>`;}).join('');
   $('reportEmpty').classList.toggle('hidden',rows.length>0);
 }
+
+function renderCngReconciliation(){
+  const box=$('meterReconciliation');
+  if(!box)return;
+  const year=$('reportYear').value, month=$('reportMonth').value, cat=$('reportCategory').value;
+  const show=year&&month&&(!cat||cat==='Gas - CNG');
+  box.classList.toggle('hidden',!show);
+  if(!show)return;
+
+  const monthRows=entries.filter(e=>e.kategori==='Gas - CNG' && monthKey(e.tanggal)===`${year}-${month}`).sort((a,b)=>{
+    const d=a.tanggal.localeCompare(b.tanggal);
+    return d || String(a.created_at||'').localeCompare(String(b.created_at||''));
+  });
+  const periodLabel=new Date(`${year}-${month}-01T00:00:00`).toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+  $('reconPeriod').textContent=periodLabel;
+  $('reconStatus').className='recon-status';
+  $('reconMessage').className='recon-message';
+
+  if(!monthRows.length){
+    $('reconOpening').textContent='0';$('reconClosing').textContent='0';$('reconPeriodResult').textContent='0';$('reconDailyTotal').textContent='0';$('reconDifference').textContent='0';$('reconDays').textContent='0 hari tercatat';
+    $('reconStatus').textContent='BELUM ADA DATA';$('reconStatus').classList.add('recon-neutral');
+    $('reconMessage').textContent='Belum ada data CNG untuk periode ini.';
+    return;
+  }
+
+  const byDay=new Map();
+  monthRows.forEach(e=>{if(!byDay.has(e.tanggal))byDay.set(e.tanggal,[]);byDay.get(e.tanggal).push(e);});
+  const dates=[...byDay.keys()].sort();
+  const firstDay=byDay.get(dates[0])[0];
+  const lastDayRows=byDay.get(dates[dates.length-1]);
+  const lastDay=lastDayRows[lastDayRows.length-1];
+  const opening=Number(firstDay.saldo_awal||0);
+  const closing=Number(lastDay.saldo_akhir||0);
+  const periodResult=closing-opening;
+  const dailyTotal=monthRows.reduce((s,e)=>s+Number(e.pemakaian||0),0);
+  const difference=periodResult-dailyTotal;
+  const daysInMonth=new Date(Number(year),Number(month),0).getDate();
+  const completeDays=dates.length===daysInMonth && dates.every((d,i)=>Number(d.slice(8,10))===i+1);
+  let continuity=true;
+  for(let i=1;i<dates.length;i++){
+    const prev=byDay.get(dates[i-1]);
+    const curr=byDay.get(dates[i]);
+    const prevClosing=Number(prev[prev.length-1].saldo_akhir||0);
+    const currOpening=Number(curr[0].saldo_awal||0);
+    if(Math.abs(prevClosing-currOpening)>0.0005){continuity=false;break;}
+  }
+
+  $('reconOpening').textContent=fmt(opening);
+  $('reconClosing').textContent=fmt(closing);
+  $('reconPeriodResult').textContent=fmt(periodResult);
+  $('reconDailyTotal').textContent=fmt(dailyTotal);
+  $('reconDifference').textContent=fmt(difference);
+  $('reconDays').textContent=`${dates.length}/${daysInMonth} hari tercatat`;
+
+  const synced=Math.abs(difference)<=0.0005 && completeDays && continuity;
+  const incomplete=!completeDays;
+  if(synced){
+    $('reconStatus').textContent='SINKRON';$('reconStatus').classList.add('recon-good');
+    $('reconMessage').innerHTML='🟢 <strong>SINKRON</strong> — hasil periode sama dengan total pemakaian harian dan saldo harian tersambung.';
+    $('reconMessage').classList.add('good');
+  }else if(incomplete){
+    $('reconStatus').textContent='BELUM LENGKAP';$('reconStatus').classList.add('recon-warning');
+    $('reconMessage').innerHTML=`🟡 <strong>BELUM LENGKAP</strong> — baru ${dates.length} dari ${daysInMonth} hari tercatat. Rekonsiliasi final dilakukan setelah data satu bulan lengkap.`;
+    $('reconMessage').classList.add('warning');
+  }else{
+    $('reconStatus').textContent='TIDAK SINKRON';$('reconStatus').classList.add('recon-bad');
+    const reasons=[];
+    if(Math.abs(difference)>0.0005)reasons.push(`selisih ${fmt(difference)}`);
+    if(!continuity)reasons.push('saldo awal/akhir antar hari tidak tersambung');
+    $('reconMessage').innerHTML=`🔴 <strong>TIDAK SINKRON</strong> — ${reasons.join(' dan ')}.`;
+    $('reconMessage').classList.add('bad');
+  }
+}
 function exportReportCsv(){
   const rows=getReportRows();
   const header=['Bulan','Tanggal','Kategori','Item','Saldo Awal','Pemasukan','Pemakaian','Saldo Akhir','Mode'];

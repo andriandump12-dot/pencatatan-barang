@@ -341,3 +341,13 @@ input,select,textarea{border-radius:13px;border-color:#e0e7ef;background:#fbfcfe
   border-color:#263244 !important;
   transition:background-color 9999s ease-in-out 0s;
 }
+
+/* V17 — Monthly CNG reconciliation */
+.meter-reconciliation{margin-top:22px;padding:20px;border:1px solid #dbe4f0;border-radius:22px;background:linear-gradient(145deg,#ffffff,#f7fbff);box-shadow:0 12px 34px rgba(15,23,42,.055)}
+.recon-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}.recon-head h3{margin:5px 0 5px;font-size:19px;letter-spacing:-.35px}.recon-head p{margin:0;font-size:12px}
+.recon-status{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 13px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:10px;font-weight:900;letter-spacing:.6px;white-space:nowrap}
+.recon-good{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}.recon-bad{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}.recon-warning{background:#fef3c7;color:#92400e;border:1px solid #fde68a}.recon-neutral{background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0}
+.recon-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.recon-card{padding:15px;border:1px solid #e7edf5;border-radius:16px;background:#fff}.recon-card span{display:block;font-size:10px;color:#64748b}.recon-card strong{display:block;margin-top:7px;font-size:21px;letter-spacing:-.4px}.recon-card small{display:block;margin-top:5px;font-size:9px;color:#94a3b8}.recon-difference{background:#fbfdff}
+.recon-message{margin-top:12px;padding:12px 14px;border-radius:14px;background:#f8fafc;color:#475569;font-size:11px;border:1px solid #e2e8f0}.recon-message.good{background:#f0fdf4;border-color:#bbf7d0;color:#166534}.recon-message.warning{background:#fffbeb;border-color:#fde68a;color:#92400e}.recon-message.bad{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+@media(max-width:1000px){.recon-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.recon-card:last-child{grid-column:1/-1}}
+@media(max-width:600px){.meter-reconciliation{padding:15px;border-radius:18px}.recon-head{flex-direction:column}.recon-status{align-self:flex-start}.recon-grid{grid-template-columns:1fr}.recon-card:last-child{grid-column:auto}.recon-card strong{font-size:20px}}
